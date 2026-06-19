@@ -10,10 +10,23 @@ import { Zap, Trophy, Brain, Target, Calendar, Share2, Award, Star, Flame, Layou
 import Link from "next/link";
 import { useUserStore } from "@/store/useUserStore";
 
+interface Activity {
+    id: string;
+    topic: {
+        title: string;
+        emoji: string;
+    };
+    earnedXp: number;
+    completedAt: string;
+}
+
 export default function DashboardPage() {
-    const { xp, streak, level, isLoggedIn } = useUserStore();
+    const { xp, streak, level, syncWithDatabase } = useUserStore();
     const { data: session, status } = useSession();
     const router = useRouter();
+
+    const [activities, setActivities] = useState<Activity[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         if (status === "unauthenticated") {
@@ -21,22 +34,52 @@ export default function DashboardPage() {
         }
     }, [status, router]);
 
-    // Don't render anything until client side resolves persisted state
+    useEffect(() => {
+        async function loadUserStats() {
+            if (status === "authenticated") {
+                await syncWithDatabase();
+                try {
+                    const res = await fetch("/api/user/stats");
+                    if (res.ok) {
+                        const data = await res.json();
+                        setActivities(data.activities || []);
+                    }
+                } catch (e) {
+                    console.error("Failed to load user activities", e);
+                } finally {
+                    setLoading(false);
+                }
+            }
+        }
+        loadUserStats();
+    }, [status, syncWithDatabase]);
+
     if (status !== "authenticated") return null;
 
     const stats = [
         { label: "Streak", value: `${streak} Days`, icon: Flame, color: "text-brand-orange", bg: "bg-brand-orange/10" },
         { label: "Brain XP", value: xp.toLocaleString(), icon: Trophy, color: "text-brand-primary", bg: "bg-brand-primary/10" },
-        { label: "Intel Ops", value: "14/30", icon: Brain, color: "text-brand-secondary", bg: "bg-brand-secondary/10" },
-        { label: "Accuracy", value: "92%", icon: Target, color: "text-brand-success", bg: "bg-brand-success/10" },
+        { label: "Intel Ops", value: `${activities.length} completed`, icon: Brain, color: "text-brand-secondary", bg: "bg-brand-secondary/10" },
+        { label: "Accuracy", value: "100%", icon: Target, color: "text-brand-success", bg: "bg-brand-success/10" },
     ];
 
-    const recentTopics = [
-        { title: "Gaslighting 101", date: "Today", status: "Done", xp: "+50", emoji: "🧐" },
-        { title: "Sunk Cost Fallacy", date: "Yesterday", status: "Done", xp: "+50", emoji: "📉" },
-        { title: "Active Listening", date: "Mar 9", status: "Done", xp: "+45", emoji: "👂" },
-        { title: "Confirmation Bias", date: "Mar 8", status: "Done", xp: "+50", emoji: "🧠" },
-    ];
+    const formatCompletedDate = (isoString: string) => {
+        const date = new Date(isoString);
+        return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    };
+
+    // Calculate level limits for progress bar
+    let lowerLimit = 0;
+    let upperLimit = 100;
+    if (xp >= 5000) { lowerLimit = 5000; upperLimit = 10000; }
+    else if (xp >= 2500) { lowerLimit = 2500; upperLimit = 5000; }
+    else if (xp >= 1000) { lowerLimit = 1000; upperLimit = 2500; }
+    else if (xp >= 500) { lowerLimit = 500; upperLimit = 1000; }
+    else if (xp >= 100) { lowerLimit = 100; upperLimit = 500; }
+    
+    const xpProgress = xp - lowerLimit;
+    const nextLevelXp = upperLimit - lowerLimit;
+    const progressPercent = Math.min(100, Math.round((xpProgress / nextLevelXp) * 100));
 
     return (
         <main className="min-h-screen pb-24 bg-background text-foreground">
@@ -49,8 +92,10 @@ export default function DashboardPage() {
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                     >
-                        <h1 className="text-4xl md:text-5xl font-bold font-display mb-2 text-foreground">Sup, <span className="text-brand-primary">{level}?</span> 🎓</h1>
-                        <p className="text-text-secondary text-lg font-medium">You&apos;re in the top <span className="text-brand-primary font-bold">5%</span> this week. Keep that edge.</p>
+                        <h1 className="text-4xl md:text-5xl font-bold font-display mb-2 text-foreground">
+                            Sup, <span className="text-brand-primary">{session.user?.name || level}?</span> 🎓
+                        </h1>
+                        <p className="text-text-secondary text-lg font-medium">You're in the top <span className="text-brand-primary font-bold">5%</span> this week. Keep that edge.</p>
                     </motion.div>
 
                     <div className="flex gap-4">
@@ -67,7 +112,6 @@ export default function DashboardPage() {
 
                 {/* Global Progress Card - Gamified */}
                 <div className="bg-card rounded-[3.5rem] p-8 md:p-12 card-shadow border border-border mb-12 relative overflow-hidden group">
-                    {/* Decorative background elements */}
                     <div className="absolute top-0 right-0 w-64 h-64 bg-brand-primary/5 rounded-full blur-3xl -translate-y-12 translate-x-12" />
 
                     <div className="flex flex-col md:flex-row items-center gap-10 relative z-10">
@@ -87,13 +131,15 @@ export default function DashboardPage() {
                             <div className="flex justify-between items-end">
                                 <div>
                                     <h2 className="text-3xl font-bold font-display text-foreground leading-none mb-2">Rank: {level}</h2>
-                                    <p className="text-text-secondary text-xs font-black uppercase tracking-[0.2em]">750 / 1000 XP to next level</p>
+                                    <p className="text-text-secondary text-xs font-black uppercase tracking-[0.2em]">
+                                        {xpProgress} / {nextLevelXp} XP to next level
+                                    </p>
                                 </div>
                                 <div className="text-right">
-                                    <span className="text-brand-primary font-black text-2xl font-display">75%</span>
+                                    <span className="text-brand-primary font-black text-2xl font-display">{progressPercent}%</span>
                                 </div>
                             </div>
-                            <XPProgressBar currentXp={750} maxXp={1000} />
+                            <XPProgressBar currentXp={xpProgress} maxXp={nextLevelXp} />
                         </div>
                     </div>
                 </div>
@@ -128,31 +174,41 @@ export default function DashboardPage() {
                             <button className="text-brand-secondary font-black text-xs uppercase tracking-widest hover:underline">View All</button>
                         </div>
 
-                        <div className="space-y-6">
-                            {recentTopics.map((topic, i) => (
-                                <motion.div
-                                    key={i}
-                                    whileHover={{ x: 10 }}
-                                    className="flex items-center justify-between p-5 rounded-[2rem] bg-background hover:bg-brand-primary/5 transition-colors border border-transparent hover:border-brand-primary/10 group overflow-hidden relative"
-                                >
-                                    <div className="flex items-center gap-5 relative z-10">
-                                        <div className="w-14 h-14 bg-card rounded-2xl flex items-center justify-center text-2xl shadow-sm border border-border group-hover:rotate-6 transition-transform">
-                                            {topic.emoji}
+                        {loading ? (
+                            <div className="py-20 text-center text-text-secondary">Loading feed...</div>
+                        ) : activities.length === 0 ? (
+                            <div className="py-20 text-center text-text-secondary font-medium font-sans">
+                                No lessons completed yet. Start your journey today!
+                            </div>
+                        ) : (
+                            <div className="space-y-6">
+                                {activities.map((activity, i) => (
+                                    <motion.div
+                                        key={i}
+                                        whileHover={{ x: 10 }}
+                                        className="flex items-center justify-between p-5 rounded-[2rem] bg-background hover:bg-brand-primary/5 transition-colors border border-transparent hover:border-brand-primary/10 group overflow-hidden relative"
+                                    >
+                                        <div className="flex items-center gap-5 relative z-10">
+                                            <div className="w-14 h-14 bg-card rounded-2xl flex items-center justify-center text-2xl shadow-sm border border-border group-hover:rotate-6 transition-transform">
+                                                {activity.topic.emoji || "🧐"}
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-foreground font-display text-lg">{activity.topic.title}</h4>
+                                                <p className="text-xs text-text-secondary font-black uppercase tracking-tight">
+                                                    Completed on {formatCompletedDate(activity.completedAt)}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h4 className="font-bold text-foreground font-display text-lg">{topic.title}</h4>
-                                            <p className="text-xs text-text-secondary font-black uppercase tracking-tight">{topic.date}</p>
+                                        <div className="flex items-center gap-4 relative z-10">
+                                            <span className="text-brand-success font-black text-lg font-display">+{activity.earnedXp} XP</span>
+                                            <button className="p-3 bg-card rounded-xl border border-border text-text-secondary hover:text-brand-primary transition-colors">
+                                                <Share2 className="w-5 h-5" />
+                                            </button>
                                         </div>
-                                    </div>
-                                    <div className="flex items-center gap-4 relative z-10">
-                                        <span className="text-brand-success font-black text-lg font-display">{topic.xp} XP</span>
-                                        <button className="p-3 bg-card rounded-xl border border-border text-text-secondary hover:text-brand-primary transition-colors">
-                                            <Share2 className="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                </motion.div>
-                            ))}
-                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     {/* Gamified Sidebar */}
@@ -162,28 +218,30 @@ export default function DashboardPage() {
                             <Layout className="absolute top-2 right-2 w-40 h-40 opacity-10 -rotate-12 group-hover:rotate-12 transition-transform duration-1000" />
                             <Star className="text-brand-secondary fill-brand-secondary w-10 h-10 mb-6 drop-shadow-[0_0_10px_rgba(0,191,255,0.5)]" />
                             <h3 className="text-2xl font-bold mb-4 font-display">Daily Quest</h3>
-                            <p className="text-white/80 mb-8 font-medium font-sans">Solve 3 more puzzles to unlock the <span className="text-white font-bold">Sage</span> badge and exclusive content.</p>
+                            <p className="text-white/80 mb-8 font-medium font-sans">Complete topics consistently to boost your learning streaks.</p>
 
                             <div className="space-y-3 mb-8">
                                 <div className="flex justify-between text-xs font-black uppercase tracking-widest opacity-80">
-                                    <span>Progress</span>
-                                    <span>66%</span>
+                                    <span>Quest Progress</span>
+                                    <span>{Math.min(100, Math.round((streak / 7) * 100))}%</span>
                                 </div>
                                 <div className="w-full bg-white/20 h-2.5 rounded-full overflow-hidden">
-                                    <div className="bg-white w-2/3 h-full rounded-full shadow-[0_0_10px_white]" />
+                                    <div className="bg-white h-full rounded-full shadow-[0_0_10px_white]" style={{ width: `${Math.min(100, (streak / 7) * 100)}%` }} />
                                 </div>
                             </div>
 
-                            <button className="w-full bg-white text-brand-primary py-4 rounded-2xl font-bold font-display text-lg shadow-xl shadow-black/10 hover:scale-105 active:scale-95 transition-all btn-push">
-                                Grind Now
-                            </button>
+                            <Link href="/learn" className="block w-full">
+                                <button className="w-full bg-white text-brand-primary py-4 rounded-2xl font-bold font-display text-lg shadow-xl shadow-black/10 hover:scale-105 active:scale-95 transition-all btn-push">
+                                    Learn Daily Topic
+                                </button>
+                            </Link>
                         </div>
 
                         {/* Badges/Achievements Case */}
                         <div className="bg-card rounded-[3.5rem] p-8 border border-border card-shadow">
                             <h4 className="text-center text-xs font-black uppercase tracking-[0.3em] text-text-secondary mb-8">Trophy Room</h4>
                             <div className="grid grid-cols-3 gap-6">
-                                {[1, 2, 3, 4, 5, 0].map((val, idx) => (
+                                {[1, activities.length > 0 ? 2 : 0, xp >= 5000 ? 3 : 0, 0, 0, 0].map((val, idx) => (
                                     <div key={idx} className={`aspect-square rounded-2xl flex items-center justify-center border-2 border-dashed ${val > 0 ? 'bg-brand-primary/5 border-brand-primary/20 scale-110' : 'bg-background border-border opacity-30'}`}>
                                         {val > 0 ? <Award className={`w-8 h-8 text-brand-primary`} /> : <Layout className="w-6 h-6 text-text-secondary" />}
                                     </div>

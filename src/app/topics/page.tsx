@@ -1,73 +1,62 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { motion } from "framer-motion";
 import { Lock, Play, Clock, Star, Brain, BookOpen } from "lucide-react";
 import Link from "next/link";
 
-export default function TopicsPage() {
-    const categories = [
-        { title: "Psychology 101", icon: Brain, color: "text-brand-primary", bg: "bg-brand-primary/10" },
-        { title: "Social Skills", icon: Star, color: "text-brand-secondary", bg: "bg-brand-secondary/10" },
-        { title: "Money Intelligence", icon: Clock, color: "text-brand-success", bg: "bg-brand-success/10" },
-    ];
+interface Topic {
+    id: string;
+    title: string;
+    slug: string;
+    emoji: string;
+    summary: string;
+    season: string;
+    cluster: string;
+    isPremium: boolean;
+    dayOfWeek: number;
+}
 
-    const topics = [
-        {
-            title: "Gaslighting 101",
-            category: "Psychology",
-            time: "60s",
-            difficulty: "Easy",
-            status: "Available",
-            description: "Spot reality distortion before it spots you.",
-            locked: false
-        },
-        {
-            title: "Sunk Cost Fallacy",
-            category: "Decision Making",
-            time: "90s",
-            difficulty: "Medium",
-            status: "Available",
-            description: "Why you keep doing things that make you miserable.",
-            locked: false
-        },
-        {
-            title: "Dark Persuasion",
-            category: "Social Skills",
-            time: "2m",
-            difficulty: "Hard",
-            status: "Premium",
-            description: "The subtle art of making people say yes. Ethically-ish.",
-            locked: true
-        },
-        {
-            title: "Active Listening",
-            category: "Social Skills",
-            time: "60s",
-            difficulty: "Easy",
-            status: "Available",
-            description: "Stop waiting for your turn to speak.",
-            locked: false
-        },
-        {
-            title: "Dopamine Detox",
-            category: "Biology",
-            time: "90s",
-            difficulty: "Medium",
-            status: "Premium",
-            description: "Reset your brain's pleasure center.",
-            locked: true
-        },
-        {
-            title: "The Halo Effect",
-            category: "Psychology",
-            time: "60s",
-            difficulty: "Easy",
-            status: "Available",
-            description: "Why pretty people get away with everything.",
-            locked: false
-        },
-    ];
+export default function TopicsPage() {
+    const [topics, setTopics] = useState<Topic[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
+
+    useEffect(() => {
+        async function fetchTopics() {
+            try {
+                const res = await fetch("/api/topics");
+                if (res.ok) {
+                    const data = await res.json();
+                    setTopics(data);
+                }
+            } catch (err) {
+                console.error("Failed to load topics", err);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchTopics();
+    }, []);
+
+    // Dynamically calculate unique clusters for categories filter
+    const clusters = Array.from(new Set(topics.map(t => t.cluster).filter(Boolean))) as string[];
+
+    const filteredTopics = selectedCluster 
+        ? topics.filter(t => t.cluster === selectedCluster)
+        : topics;
+
+    if (loading) {
+        return (
+            <main className="min-h-screen bg-background text-foreground flex items-center justify-center">
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 border-4 border-brand-primary border-t-transparent rounded-full animate-spin mx-auto" />
+                    <p className="text-lg text-text-secondary font-bold font-display uppercase tracking-widest">Loading Topics Archive...</p>
+                </div>
+            </main>
+        );
+    }
 
     return (
         <main className="min-h-screen pb-24 bg-background">
@@ -81,19 +70,27 @@ export default function TopicsPage() {
 
                 {/* Categories Scroller */}
                 <div className="flex gap-4 mb-16 overflow-x-auto pb-4 no-scrollbar">
-                    {categories.map((cat, i) => (
-                        <button key={i} className="flex items-center gap-3 px-6 py-3 rounded-2xl bg-card border border-border shadow-sm whitespace-nowrap hover:border-brand-primary transition-all group btn-push">
-                            <div className={`${cat.bg} ${cat.color} p-2 rounded-xl group-hover:scale-110 transition-transform`}>
-                                <cat.icon className="w-5 h-5" />
-                            </div>
-                            <span className="font-bold text-foreground font-display">{cat.title}</span>
+                    <button 
+                        onClick={() => setSelectedCluster(null)}
+                        className={`flex items-center gap-3 px-6 py-3 rounded-2xl border shadow-sm whitespace-nowrap transition-all group btn-push ${!selectedCluster ? 'border-brand-primary bg-brand-primary/10 text-brand-primary' : 'bg-card border-border text-foreground hover:border-brand-primary'}`}
+                    >
+                        <Brain className="w-5 h-5" />
+                        <span className="font-bold font-display">All Topics</span>
+                    </button>
+                    {clusters.map((cluster, i) => (
+                        <button 
+                            key={i} 
+                            onClick={() => setSelectedCluster(cluster)}
+                            className={`flex items-center gap-3 px-6 py-3 rounded-2xl border shadow-sm whitespace-nowrap transition-all group btn-push ${selectedCluster === cluster ? 'border-brand-primary bg-brand-primary/10 text-brand-primary' : 'bg-card border-border text-foreground hover:border-brand-primary'}`}
+                        >
+                            <span className="font-bold font-display">{cluster}</span>
                         </button>
                     ))}
                 </div>
 
                 {/* Topics Grid */}
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {topics.map((topic, i) => (
+                    {filteredTopics.map((topic, i) => (
                         <motion.div
                             key={i}
                             initial={{ opacity: 0, y: 20 }}
@@ -105,9 +102,9 @@ export default function TopicsPage() {
                             <div className="p-8 flex-1">
                                 <div className="flex justify-between items-start mb-6">
                                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary bg-brand-primary/10 px-3 py-1.5 rounded-full">
-                                        {topic.category}
+                                        {topic.cluster || topic.season}
                                     </span>
-                                    {topic.locked ? (
+                                    {topic.isPremium ? (
                                         <div className="p-2 bg-foreground/5 rounded-xl text-foreground/40">
                                             <Lock className="w-5 h-5" />
                                         </div>
@@ -119,26 +116,26 @@ export default function TopicsPage() {
                                 </div>
 
                                 <h3 className="text-2xl font-bold font-display text-foreground mb-3 leading-tight group-hover:text-brand-primary transition-colors">
-                                    {topic.title}
+                                    {topic.title} {topic.emoji}
                                 </h3>
                                 <p className="text-text-secondary font-medium font-sans leading-relaxed mb-6">
-                                    {topic.description}
+                                    {topic.summary}
                                 </p>
 
                                 <div className="flex items-center gap-4 text-xs font-black text-text-secondary/60 uppercase tracking-widest">
                                     <div className="flex items-center gap-1.5">
                                         <Clock className="w-3.5 h-3.5" />
-                                        {topic.time}
+                                        60s
                                     </div>
                                     <div className="flex items-center gap-1.5">
                                         <Brain className="w-3.5 h-3.5" />
-                                        {topic.difficulty}
+                                        {topic.season}
                                     </div>
                                 </div>
                             </div>
 
                             <div className="px-8 pb-8">
-                                {topic.locked ? (
+                                {topic.isPremium ? (
                                     <button className="w-full py-4 bg-foreground/5 text-foreground/40 rounded-2xl font-bold font-display flex items-center justify-center gap-2 cursor-not-allowed group-hover:bg-foreground/10 transition-all">
                                         <Lock className="w-5 h-5" />
                                         Premium Access
@@ -147,7 +144,7 @@ export default function TopicsPage() {
                                     <Link href="/learn" className="block">
                                         <button className="w-full py-4 gradient-primary text-white rounded-2xl font-bold font-display flex items-center justify-center gap-2 shadow-lg shadow-brand-primary/25 hover:shadow-brand-primary/40 active:scale-95 transition-all btn-push">
                                             <Play className="w-5 h-5 fill-current" />
-                                            Start IQ Grind
+                                            Start Lesson
                                         </button>
                                     </Link>
                                 )}

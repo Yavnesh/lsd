@@ -51,6 +51,9 @@ model Topic {
   content     String?  // JSON formatted blocks
   isPremium   Boolean  @default(false)
   type        String   @default("DAILY") // e.g., DAILY, HUB
+  season      String?
+  cluster     String?
+  dayOfWeek   Int?
   
   userActivities UserActivity[]
   

@@ -29,14 +29,24 @@ export default function LoginPage() {
         signIn("google", { callbackUrl: "/learn" });
     };
 
-    const handleLogin = (e: React.FormEvent) => {
+    const [email, setEmail] = useState("");
+
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!email) return;
         setLoading(true);
 
-        setTimeout(() => {
-            login("Alpha User", "alpha@mastermind.com", "A", []);
+        const res = await signIn("credentials", {
+            email,
+            redirect: false,
+            callbackUrl: "/learn"
+        });
+
+        if (res?.ok) {
             router.replace("/learn");
-        }, 800);
+        } else {
+            setLoading(false);
+        }
     };
 
     return (
@@ -95,6 +105,8 @@ export default function LoginPage() {
                                 type="email"
                                 placeholder="you@mastermind.com"
                                 required
+                                value={email}
+                                onChange={e => setEmail(e.target.value)}
                                 className="w-full p-5 bg-background border-2 border-transparent focus:border-brand-primary focus:bg-card rounded-2xl outline-none transition-all font-medium text-foreground placeholder:opacity-30"
                             />
                         </div>
