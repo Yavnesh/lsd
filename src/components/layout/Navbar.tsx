@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Zap, Menu, Chrome as Home, BarChart3, User, LogOut, Sun, Moon } from "lucide-react";
+import { Zap, Menu, Chrome as Home, BarChart3, User, LogOut, Sun, Moon, Trophy } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
 import { useUserStore } from "@/store/useUserStore";
+import { NotificationCenter } from "./NotificationCenter";
 
 export const Navbar = () => {
     const { data: session, status } = useSession();
@@ -18,7 +19,7 @@ export const Navbar = () => {
     // Default to Zustand store, but override with session if it exists.
     const isAuthenticated = status === "authenticated";
     const userName = session?.user?.name || storeUserName;
-    const userAvatar = (session?.user as any)?.defaultAvatar || storeUserAvatar;
+    const userAvatar = (session?.user as any)?.selectedAvatar || (session?.user as any)?.defaultAvatar || storeUserAvatar;
     const suggestedAvatars = (session?.user as any)?.suggestedAvatars || storeSuggestedAvatars;
 
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -56,14 +57,17 @@ export const Navbar = () => {
 
                 <div className="flex items-center gap-3">
                     {mounted && (
-                        <button
-                            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                            className="p-2 rounded-full text-text-secondary hover:text-foreground hover:bg-brand-primary/10 transition-colors mr-2 relative"
-                            aria-label="Toggle theme"
-                        >
-                            <Sun className="h-5 w-5 dark:hidden" />
-                            <Moon className="h-5 w-5 hidden dark:block" />
-                        </button>
+                        <>
+                            <NotificationCenter />
+                            <button
+                                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                                className="p-2 rounded-full text-text-secondary hover:text-foreground hover:bg-brand-primary/10 transition-colors mr-1 relative cursor-pointer"
+                                aria-label="Toggle theme"
+                            >
+                                <Sun className="h-5 w-5 dark:hidden" />
+                                <Moon className="h-5 w-5 hidden dark:block" />
+                            </button>
+                        </>
                     )}
                     
                     {!isAuthenticated ? (
@@ -134,6 +138,12 @@ export const Navbar = () => {
                                             {(!suggestedAvatars || suggestedAvatars.length === 0) && (
                                                 <p className="text-xs text-text-secondary text-center py-4">No avatars available.</p>
                                             )}
+
+                                            <div className="mt-4 pt-4 border-t border-border">
+                                                <Link href="/leaderboard" onClick={() => setIsProfileMenuOpen(false)} className="w-full py-2.5 bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary rounded-xl text-center font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
+                                                    <Trophy className="w-3.5 h-3.5" /> View Leaderboard
+                                                </Link>
+                                            </div>
                                         </motion.div>
                                     )}
                                 </div>

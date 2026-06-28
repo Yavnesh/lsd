@@ -10,8 +10,8 @@ interface UserState {
     userEmail: string;
     userAvatar: string;
     suggestedAvatars: string[];
-    addXp: (amount: number, topicId?: string) => void;
-    incrementStreak: () => void;
+    addXp: (amount: number, topicId?: string, quizCorrect?: boolean, selectedOptionIndex?: number, incrementStreak?: boolean) => Promise<void>;
+    incrementStreak: () => Promise<void>;
     login: (name: string, email: string, avatar: string, suggestedAvatars: string[]) => void;
     logout: () => void;
     checkLevelUp: () => void;
@@ -40,17 +40,35 @@ export const useUserStore = create<UserState>()(
             userAvatar: 'G',
             suggestedAvatars: [],
 
-            addXp: async (amount, topicId) => {
-                set((state) => ({ xp: state.xp + amount }));
+            addXp: async (amount, topicId, quizCorrect, selectedOptionIndex, incrementStreak) => {
+                // Optimistic local update
+                set((state) => ({ xp: state.xp + (quizCorrect === false ? 0 : amount) }));
                 get().checkLevelUp();
                 
                 if (get().isLoggedIn) {
                     try {
-                        await fetch('/api/user/stats', {
+                        const res = await fetch('/api/user/stats', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ xpToAdd: amount, topicId, earnedXp: amount })
+                            body: JSON.stringify({
+                                xpToAdd: amount,
+                                topicId,
+                                earnedXp: amount,
+                                quizCorrect,
+                                selectedOptionIndex,
+                                incrementStreak
+                            })
                         });
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data.stats) {
+                                set({
+                                    xp: data.stats.xp,
+                                    streak: data.stats.streak,
+                                    level: data.stats.level
+                                });
+                            }
+                        }
                     } catch (e) {
                         console.error("Failed to sync XP with backend", e);
                     }
@@ -61,11 +79,21 @@ export const useUserStore = create<UserState>()(
                 set((state) => ({ streak: state.streak + 1 }));
                 if (get().isLoggedIn) {
                     try {
-                        await fetch('/api/user/stats', {
+                        const res = await fetch('/api/user/stats', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ incrementStreak: true })
                         });
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data.stats) {
+                                set({
+                                    xp: data.stats.xp,
+                                    streak: data.stats.streak,
+                                    level: data.stats.level
+                                });
+                            }
+                        }
                     } catch (e) {
                         console.error("Failed to sync streak with backend", e);
                     }
@@ -104,11 +132,25 @@ export const useUserStore = create<UserState>()(
                 }
             },
 
-            setAvatar: (avatarUrl) => set({ userAvatar: avatarUrl }),
+            setAvatar: async (avatarUrl) => {
+                set({ userAvatar: avatarUrl });
+                if (get().isLoggedIn) {
+                    try {
+                        await fetch('/api/user/profile', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ avatarUrl })
+                        });
+                    } catch (e) {
+                        console.error("Failed to sync avatar with backend", e);
+                    }
+                }
+            },
 
             syncWithDatabase: async () => {
                 try {
-                    const res = await fetch('/api/user/stats');
+                    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                    const res = await fetch(`/api/user/stats?tz=${encodeURIComponent(tz)}`);
                     if (res.ok) {
                         const data = await res.json();
                         set({

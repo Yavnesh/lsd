@@ -15,6 +15,10 @@ export default function SignupPage() {
     const router = useRouter();
     const { login } = useUserStore();
     const [loading, setLoading] = useState(false);
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
 
     useEffect(() => {
         if (status === "authenticated") {
@@ -25,18 +29,49 @@ export default function SignupPage() {
     const handleGoogleSignup = (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-
         signIn("google", { callbackUrl: "/learn" });
     };
 
-    const handleSignup = (e: React.FormEvent) => {
+    const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setError("");
 
-        setTimeout(() => {
-            login("Alpha User", "alpha@mastermind.com", "A", []);
-            router.replace("/learn");
-        }, 800);
+        try {
+            const res = await fetch("/api/auth/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, email, password })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                setError(data.error || "Something went wrong.");
+                setLoading(false);
+                return;
+            }
+
+            // Successfully registered, now sign in
+            const signRes = await signIn("credentials", {
+                email,
+                password,
+                redirect: false,
+                callbackUrl: "/learn"
+            });
+
+            if (signRes?.ok) {
+                // Pre-populate user store to sync on next render
+                login(name || email.split("@")[0], email, "", []);
+                router.replace("/learn");
+            } else {
+                setError("Account created but failed to log in automatically. Please sign in.");
+                setLoading(false);
+            }
+        } catch (err) {
+            setError("Failed to register. Please try again.");
+            setLoading(false);
+        }
     };
 
     const perks = [
@@ -92,6 +127,12 @@ export default function SignupPage() {
                             <p className="text-text-secondary font-medium font-sans">Stop scrolling garbage, start stacking IQ.</p>
                         </div>
 
+                        {error && (
+                            <div className="p-4 rounded-xl mb-6 bg-brand-error/10 border border-brand-error/20 text-brand-error text-sm font-bold">
+                                {error}
+                            </div>
+                        )}
+
                         <div className="space-y-4 mb-8 font-sans">
                             <button
                                 onClick={handleGoogleSignup}
@@ -111,11 +152,34 @@ export default function SignupPage() {
 
                         <form onSubmit={handleSignup} className="space-y-5">
                             <div className="space-y-1.5">
+                                <label className="block text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] ml-2">Display Name</label>
+                                <input
+                                    type="text"
+                                    placeholder="Your Name"
+                                    value={name}
+                                    onChange={e => setName(e.target.value)}
+                                    className="w-full p-4 bg-background border-2 border-transparent focus:border-brand-primary rounded-2xl outline-none transition-all font-medium text-foreground placeholder:opacity-30"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
                                 <label className="block text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] ml-2">Email Address</label>
                                 <input
                                     type="email"
                                     placeholder="name@example.com"
                                     required
+                                    value={email}
+                                    onChange={e => setEmail(e.target.value)}
+                                    className="w-full p-4 bg-background border-2 border-transparent focus:border-brand-primary rounded-2xl outline-none transition-all font-medium text-foreground placeholder:opacity-30"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="block text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] ml-2">Password</label>
+                                <input
+                                    type="password"
+                                    placeholder="Min 6 characters"
+                                    required
+                                    value={password}
+                                    onChange={e => setPassword(e.target.value)}
                                     className="w-full p-4 bg-background border-2 border-transparent focus:border-brand-primary rounded-2xl outline-none transition-all font-medium text-foreground placeholder:opacity-30"
                                 />
                             </div>

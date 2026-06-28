@@ -3,6 +3,7 @@ import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/lib/prisma";
+import { verifyPassword } from "@/lib/crypto";
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -15,42 +16,28 @@ export const authOptions: NextAuthOptions = {
             clientSecret: process.env.GOOGLE_CLIENT_SECRET || "mock-secret",
         }),
         CredentialsProvider({
-            name: "Test Account",
+            name: "Credentials",
             credentials: {
-                email: { label: "Email", type: "email", placeholder: "developer@lsd.com" },
-                name: { label: "Name", type: "text", placeholder: "Developer" }
+                email: { label: "Email", type: "email", placeholder: "you@example.com" },
+                password: { label: "Password", type: "password" }
             },
             async authorize(credentials) {
-                if (!credentials?.email) return null;
+                if (!credentials?.email || !credentials?.password) return null;
                 
-                let user = await prisma.user.findUnique({
+                const user = await prisma.user.findUnique({
                     where: { email: credentials.email },
                     include: { stat: true }
                 });
                 
-                if (!user) {
-                    const baseSeed = credentials.name || credentials.email.split("@")[0];
-                    user = await prisma.user.create({
-                        data: {
-                            email: credentials.email,
-                            name: credentials.name || baseSeed,
-                            defaultAvatar: `https://api.dicebear.com/9.x/bottts/svg?seed=${baseSeed}`,
-                            suggestedAvatars: JSON.stringify([
-                                `https://api.dicebear.com/9.x/bottts/svg?seed=${baseSeed}1`,
-                                `https://api.dicebear.com/9.x/bottts/svg?seed=${baseSeed}2`,
-                                `https://api.dicebear.com/9.x/bottts/svg?seed=${baseSeed}3`,
-                            ]),
-                            stat: {
-                                create: {
-                                    xp: 0,
-                                    streak: 1,
-                                    level: "Curious Mind"
-                                }
-                            }
-                        },
-                        include: { stat: true }
-                    });
+                if (!user || !user.password) {
+                    return null;
                 }
+
+                const isValid = verifyPassword(credentials.password, user.password);
+                if (!isValid) {
+                    return null;
+                }
+                
                 return user;
             }
         })
@@ -73,6 +60,9 @@ export const authOptions: NextAuthOptions = {
                     (session.user as any).level = dbUser.stat?.level || "Curious Mind";
                     (session.user as any).defaultAvatar = dbUser.defaultAvatar;
                     (session.user as any).suggestedAvatars = dbUser.suggestedAvatars ? JSON.parse(dbUser.suggestedAvatars) : [];
+                    (session.user as any).role = dbUser.role;
+                    (session.user as any).isPremium = dbUser.isPremium;
+                    (session.user as any).selectedAvatar = dbUser.selectedAvatar || dbUser.defaultAvatar;
                 }
             }
             return session;
@@ -103,6 +93,7 @@ export const authOptions: NextAuthOptions = {
                 data: {
                     defaultAvatar,
                     suggestedAvatars,
+                    selectedAvatar: defaultAvatar,
                     stat: {
                         create: {
                             xp: 0,

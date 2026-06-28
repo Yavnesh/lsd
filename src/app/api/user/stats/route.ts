@@ -1,9 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
+import { calculateStreak } from "@/lib/streak";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
         if (!session || !(session.user as any)?.id) {
@@ -11,8 +12,9 @@ export async function GET() {
         }
 
         const userId = (session.user as any).id;
+        const timezone = req.nextUrl.searchParams.get("tz") || "UTC";
 
-        const userStats = await prisma.userStat.findUnique({
+        let userStats = await prisma.userStat.findUnique({
             where: { userId },
         });
 
@@ -21,6 +23,15 @@ export async function GET() {
             include: { topic: true },
             orderBy: { completedAt: "desc" }
         });
+
+        // Dynamic streak healing
+        const calculatedStreak = calculateStreak(activities, timezone);
+        if (userStats && userStats.streak !== calculatedStreak) {
+            userStats = await prisma.userStat.update({
+                where: { userId },
+                data: { streak: calculatedStreak }
+            });
+        }
 
         return NextResponse.json({
             stats: userStats || { xp: 0, streak: 0, level: "Curious Mind" },
@@ -40,7 +51,7 @@ export async function POST(req: Request) {
         }
 
         const userId = (session.user as any).id;
-        const { xpToAdd, incrementStreak, topicId, earnedXp } = await req.json();
+        const { xpToAdd, topicId, earnedXp, quizCorrect, selectedOptionIndex, timezone } = await req.json();
 
         // Transaction to update stats and record activity
         const result = await prisma.$transaction(async (tx) => {
@@ -61,7 +72,8 @@ export async function POST(req: Request) {
             }
 
             // Calculate new XP
-            const newXp = userStat.xp + (xpToAdd || 0);
+            const actualXpToAdd = quizCorrect === false ? 0 : (xpToAdd || 0);
+            const newXp = userStat.xp + actualXpToAdd;
 
             // Calculate new level based on XP
             let newLevel = userStat.level;
@@ -71,35 +83,56 @@ export async function POST(req: Request) {
             else if (newXp >= 500) newLevel = "Analyst";
             else if (newXp >= 100) newLevel = "Thinker";
 
-            // Update user stats
-            const updatedStat = await tx.userStat.update({
-                where: { userId },
-                data: {
-                    xp: newXp,
-                    streak: incrementStreak ? userStat.streak + 1 : userStat.streak,
-                    level: newLevel
-                }
-            });
-
-            // 2. If topicId is provided, record user activity
-            let activity = null;
+            // 2. Record activity first
             if (topicId) {
-                activity = await tx.userActivity.upsert({
+                await tx.userActivity.upsert({
                     where: {
                         userId_topicId: {
                             userId,
                             topicId
                         }
                     },
-                    update: {}, // don't update anything if already completed
+                    update: {
+                        status: quizCorrect === false ? "FAILED" : "COMPLETED",
+                        selectedOptionIndex: selectedOptionIndex !== undefined ? selectedOptionIndex : null,
+                        quizCorrect: quizCorrect !== undefined ? quizCorrect : null,
+                        lastAttemptedAt: new Date(),
+                        completedAt: quizCorrect === false ? undefined : new Date()
+                    },
                     create: {
                         userId,
                         topicId,
-                        status: "COMPLETED",
-                        earnedXp: earnedXp || 0
+                        status: quizCorrect === false ? "FAILED" : "COMPLETED",
+                        earnedXp: quizCorrect === false ? 0 : (earnedXp || 0),
+                        selectedOptionIndex: selectedOptionIndex !== undefined ? selectedOptionIndex : null,
+                        quizCorrect: quizCorrect !== undefined ? quizCorrect : null,
+                        lastAttemptedAt: new Date(),
+                        completedAt: new Date()
                     }
                 });
             }
+
+            // 3. Compute dynamic streak from all activities
+            const allActivities = await tx.userActivity.findMany({
+                where: { userId, status: "COMPLETED" },
+                orderBy: { completedAt: "desc" }
+            });
+            const computedStreak = calculateStreak(allActivities, timezone || "UTC");
+
+            // Update user stats
+            const updatedStat = await tx.userStat.update({
+                where: { userId },
+                data: {
+                    xp: newXp,
+                    streak: computedStreak,
+                    level: newLevel
+                }
+            });
+
+            // Retrieve created activity
+            const activity = topicId ? await tx.userActivity.findUnique({
+                where: { userId_topicId: { userId, topicId } }
+            }) : null;
 
             return { stats: updatedStat, activity };
         });

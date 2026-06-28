@@ -5,6 +5,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { motion } from "framer-motion";
 import { Lock, Play, Clock, Star, Brain, BookOpen } from "lucide-react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 interface Topic {
     id: string;
@@ -19,6 +20,8 @@ interface Topic {
 }
 
 export default function TopicsPage() {
+    const { data: session } = useSession();
+    const isUserPremium = (session?.user as any)?.isPremium === true;
     const [topics, setTopics] = useState<Topic[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
@@ -90,88 +93,98 @@ export default function TopicsPage() {
 
                 {/* Topics Grid */}
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {filteredTopics.map((topic, i) => (
-                        <motion.div
-                            key={i}
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.05 }}
-                            whileHover={{ y: -8 }}
-                            className="bg-card rounded-[2.5rem] card-shadow border border-border overflow-hidden flex flex-col group"
-                        >
-                            <div className="p-8 flex-1">
-                                <div className="flex justify-between items-start mb-6">
-                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary bg-brand-primary/10 px-3 py-1.5 rounded-full">
-                                        {topic.cluster || topic.season}
-                                    </span>
-                                    {topic.isPremium ? (
-                                        <div className="p-2 bg-foreground/5 rounded-xl text-foreground/40">
-                                            <Lock className="w-5 h-5" />
+                    {filteredTopics.map((topic, i) => {
+                        const isLocked = topic.isPremium && !isUserPremium;
+
+                        return (
+                            <motion.div
+                                key={i}
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                transition={{ delay: i * 0.05 }}
+                                whileHover={{ y: -8 }}
+                                className="bg-card rounded-[2.5rem] card-shadow border border-border overflow-hidden flex flex-col group"
+                            >
+                                <div className="p-8 flex-1">
+                                    <div className="flex justify-between items-start mb-6">
+                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary bg-brand-primary/10 px-3 py-1.5 rounded-full">
+                                            {topic.cluster || topic.season}
+                                        </span>
+                                        {isLocked ? (
+                                            <div className="p-2 bg-foreground/5 rounded-xl text-foreground/40">
+                                                <Lock className="w-5 h-5" />
+                                            </div>
+                                        ) : (
+                                            <div className="p-2 bg-brand-success/10 rounded-xl text-brand-success">
+                                                <CheckCircle2 className="w-5 h-5" />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <h3 className="text-2xl font-bold font-display text-foreground mb-3 leading-tight group-hover:text-brand-primary transition-colors">
+                                        {topic.title} {topic.emoji}
+                                    </h3>
+                                    <p className="text-text-secondary font-medium font-sans leading-relaxed mb-6">
+                                        {topic.summary}
+                                    </p>
+
+                                    <div className="flex items-center gap-4 text-xs font-black text-text-secondary/60 uppercase tracking-widest">
+                                        <div className="flex items-center gap-1.5">
+                                            <Clock className="w-3.5 h-3.5" />
+                                            60s
                                         </div>
+                                        <div className="flex items-center gap-1.5">
+                                            <Brain className="w-3.5 h-3.5" />
+                                            {topic.season}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="px-8 pb-8">
+                                    {isLocked ? (
+                                        <Link href="/premium" className="block">
+                                            <button className="w-full py-4 bg-brand-accent/10 border border-brand-accent/20 text-brand-accent hover:bg-brand-accent/20 rounded-2xl font-bold font-display flex items-center justify-center gap-2 transition-all btn-push">
+                                                <Lock className="w-5 h-5" />
+                                                Unlock Premium
+                                            </button>
+                                        </Link>
                                     ) : (
-                                        <div className="p-2 bg-brand-success/10 rounded-xl text-brand-success">
-                                            <CheckCircle2 className="w-5 h-5" />
-                                        </div>
+                                        <Link href="/learn" className="block">
+                                            <button className="w-full py-4 gradient-primary text-white rounded-2xl font-bold font-display flex items-center justify-center gap-2 shadow-lg shadow-brand-primary/25 hover:shadow-brand-primary/40 active:scale-95 transition-all btn-push">
+                                                <Play className="w-5 h-5 fill-current" />
+                                                Start Lesson
+                                            </button>
+                                        </Link>
                                     )}
                                 </div>
-
-                                <h3 className="text-2xl font-bold font-display text-foreground mb-3 leading-tight group-hover:text-brand-primary transition-colors">
-                                    {topic.title} {topic.emoji}
-                                </h3>
-                                <p className="text-text-secondary font-medium font-sans leading-relaxed mb-6">
-                                    {topic.summary}
-                                </p>
-
-                                <div className="flex items-center gap-4 text-xs font-black text-text-secondary/60 uppercase tracking-widest">
-                                    <div className="flex items-center gap-1.5">
-                                        <Clock className="w-3.5 h-3.5" />
-                                        60s
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <Brain className="w-3.5 h-3.5" />
-                                        {topic.season}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="px-8 pb-8">
-                                {topic.isPremium ? (
-                                    <button className="w-full py-4 bg-foreground/5 text-foreground/40 rounded-2xl font-bold font-display flex items-center justify-center gap-2 cursor-not-allowed group-hover:bg-foreground/10 transition-all">
-                                        <Lock className="w-5 h-5" />
-                                        Premium Access
-                                    </button>
-                                ) : (
-                                    <Link href="/learn" className="block">
-                                        <button className="w-full py-4 gradient-primary text-white rounded-2xl font-bold font-display flex items-center justify-center gap-2 shadow-lg shadow-brand-primary/25 hover:shadow-brand-primary/40 active:scale-95 transition-all btn-push">
-                                            <Play className="w-5 h-5 fill-current" />
-                                            Start Lesson
-                                        </button>
-                                    </Link>
-                                )}
-                            </div>
-                        </motion.div>
-                    ))}
+                            </motion.div>
+                        );
+                    })}
                 </div>
 
                 {/* Premium Upgrade Banner */}
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    className="mt-20 p-12 bg-foreground rounded-[3.5rem] text-white flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden"
-                >
-                    <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none">
-                        <div className="absolute top-1/2 left-1/4 w-64 h-64 border-8 border-white rounded-full animate-pulse" />
-                    </div>
+                {!isUserPremium && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        className="mt-20 p-12 bg-foreground rounded-[3.5rem] text-white flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden"
+                    >
+                        <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none">
+                            <div className="absolute top-1/2 left-1/4 w-64 h-64 border-8 border-white rounded-full animate-pulse" />
+                        </div>
 
-                    <div className="text-center md:text-left relative z-10">
-                        <h2 className="text-3xl font-bold font-display mb-3">Unlock Daily Superpowers</h2>
-                        <p className="text-white/60 font-medium max-w-sm">Get access to Dark Persuasion, Mental Models 2.0, and 50+ premium intelligence drops.</p>
-                    </div>
+                        <div className="text-center md:text-left relative z-10">
+                            <h2 className="text-3xl font-bold font-display mb-3">Unlock Daily Superpowers</h2>
+                            <p className="text-white/60 font-medium max-w-sm">Get access to Dark Persuasion, Mental Models 2.0, and 50+ premium intelligence drops.</p>
+                        </div>
 
-                    <button className="bg-brand-accent text-foreground px-10 py-5 rounded-[2rem] font-black font-display text-lg shadow-2xl shadow-brand-accent/30 hover:scale-105 active:scale-95 transition-all btn-push relative z-10">
-                        Go Premium Now
-                    </button>
-                </motion.div>
+                        <Link href="/premium" className="relative z-10">
+                            <button className="bg-brand-accent text-foreground px-10 py-5 rounded-[2rem] font-black font-display text-lg shadow-2xl shadow-brand-accent/30 hover:scale-105 active:scale-95 transition-all btn-push">
+                                Go Premium Now
+                            </button>
+                        </Link>
+                    </motion.div>
+                )}
             </div>
         </main>
     );

@@ -10,6 +10,7 @@ import { GamificationHeader } from "@/components/gamification/Stats";
 import { ShareCard } from "@/components/learning/ShareCard";
 import { motion, useScroll, useSpring } from "framer-motion";
 import { useUserStore } from "@/store/useUserStore";
+import { CountdownTimer } from "@/components/learning/CountdownTimer";
 
 interface TopicBlock {
     type: "hook" | "meme" | "summary" | "poll" | "quiz" | "fact" | "share_card";
@@ -34,7 +35,7 @@ interface Topic {
 }
 
 export default function LearnPage() {
-    const { xp, streak, level, addXp } = useUserStore();
+    const { xp, streak, level, addXp, incrementStreak } = useUserStore();
     const { scrollYProgress } = useScroll();
     const scaleX = useSpring(scrollYProgress, {
         stiffness: 100,
@@ -43,30 +44,80 @@ export default function LearnPage() {
     });
 
     const [topic, setTopic] = useState<Topic | null>(null);
+    const [activity, setActivity] = useState<any>(null);
+    const [suggestions, setSuggestions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        async function fetchTodayTopic() {
+        async function loadData() {
             try {
-                const res = await fetch("/api/topics/today");
-                if (res.ok) {
-                    const data = await res.json();
-                    setTopic(data);
+                const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                
+                // Fetch today's topic, stats, and all topics in parallel
+                const [topicRes, statsRes, topicsRes] = await Promise.all([
+                    fetch(`/api/topics/today?tz=${encodeURIComponent(tz)}`),
+                    fetch(`/api/user/stats?tz=${encodeURIComponent(tz)}`),
+                    fetch("/api/topics")
+                ]);
+
+                if (topicRes.ok) {
+                    const todayTopic = await topicRes.json();
+                    setTopic(todayTopic);
+
+                    if (statsRes.ok) {
+                        const statsData = await statsRes.json();
+                        const userAct = statsData.activities?.find((a: any) => a.topicId === todayTopic.id);
+                        if (userAct) {
+                            setActivity(userAct);
+                        }
+                    }
+
+                    if (topicsRes.ok) {
+                        const allTopics = await topicsRes.json();
+                        const related = allTopics
+                            .filter((t: any) => t.id !== todayTopic.id && (t.cluster === todayTopic.cluster || t.season === todayTopic.season))
+                            .slice(0, 2);
+                        setSuggestions(related);
+                    }
                 }
             } catch (err) {
-                console.error("Failed to load today's topic", err);
+                console.error("Failed to load daily learning data", err);
             } finally {
                 setLoading(false);
             }
         }
-        fetchTodayTopic();
+        loadData();
     }, []);
 
-    const handleQuizSuccess = () => {
+    const handleQuizSuccess = async (selectedIdx: number) => {
         if (topic) {
-            addXp(50, topic.id);
+            await addXp(50, topic.id, true, selectedIdx, true);
+            // Refresh activity state
+            const statsRes = await fetch("/api/user/stats");
+            if (statsRes.ok) {
+                const statsData = await statsRes.json();
+                const userAct = statsData.activities?.find((a: any) => a.topicId === topic.id);
+                if (userAct) {
+                    setActivity(userAct);
+                }
+            }
         } else {
-            addXp(50);
+            await addXp(50);
+        }
+    };
+
+    const handleQuizFailure = async (selectedIdx: number) => {
+        if (topic) {
+            await addXp(0, topic.id, false, selectedIdx, false);
+            // Refresh activity state
+            const statsRes = await fetch("/api/user/stats");
+            if (statsRes.ok) {
+                const statsData = await statsRes.json();
+                const userAct = statsData.activities?.find((a: any) => a.topicId === topic.id);
+                if (userAct) {
+                    setActivity(userAct);
+                }
+            }
         }
     };
 
@@ -106,13 +157,14 @@ export default function LearnPage() {
             <GamificationHeader xp={xp} streak={streak} level={level} />
 
             <section className="pt-40">
+                <CountdownTimer hasCompletedToday={activity?.status === "COMPLETED"} />
                 <div className="container mx-auto px-6 mb-12 text-center">
                     <motion.h1 
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         className="text-4xl md:text-5xl font-display font-bold text-foreground capitalize"
                     >
-                        {topic.title} {topic.emoji}
+                        {topic.title.replace(/\s*\(Day\s+\d+\)\s*/i, "").trim()} {topic.emoji}
                     </motion.h1>
                 </div>
 
@@ -173,6 +225,10 @@ export default function LearnPage() {
                                         correctIndex={block.correctIndex !== undefined ? block.correctIndex : 0}
                                         explanation={block.explanation || ""}
                                         onSuccess={handleQuizSuccess}
+                                        onFailure={handleQuizFailure}
+                                        initialSelected={activity?.selectedOptionIndex}
+                                        isLocked={activity?.status === "COMPLETED"}
+                                        suggestions={suggestions}
                                     />
                                 </LearningBlock>
                             );

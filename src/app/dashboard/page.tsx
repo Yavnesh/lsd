@@ -39,7 +39,8 @@ export default function DashboardPage() {
             if (status === "authenticated") {
                 await syncWithDatabase();
                 try {
-                    const res = await fetch("/api/user/stats");
+                    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                    const res = await fetch(`/api/user/stats?tz=${encodeURIComponent(tz)}`);
                     if (res.ok) {
                         const data = await res.json();
                         setActivities(data.activities || []);
@@ -98,12 +99,17 @@ export default function DashboardPage() {
                         <p className="text-text-secondary text-lg font-medium">You're in the top <span className="text-brand-primary font-bold">5%</span> this week. Keep that edge.</p>
                     </motion.div>
 
-                    <div className="flex gap-4">
+                    <div className="flex gap-4 flex-wrap">
+                        <Link href="/leaderboard">
+                            <button className="flex items-center gap-2 bg-card px-6 py-3 rounded-2xl font-bold text-foreground border border-border card-shadow hover:bg-background transition-all btn-push cursor-pointer">
+                                <Trophy className="w-5 h-5 text-brand-primary" /> Leaderboards
+                            </button>
+                        </Link>
                         <button className="flex items-center gap-2 bg-card px-6 py-3 rounded-2xl font-bold text-foreground border border-border card-shadow hover:bg-background transition-all btn-push">
                             <Share2 className="w-5 h-5" /> Share Stats
                         </button>
                         <Link href="/learn">
-                            <button className="gradient-primary text-white px-8 py-3 rounded-2xl font-bold font-display shadow-xl shadow-brand-primary/25 flex items-center gap-2 btn-push">
+                            <button className="gradient-primary text-white px-8 py-3 rounded-2xl font-bold font-display shadow-xl shadow-brand-primary/25 flex items-center gap-2 btn-push cursor-pointer">
                                 <Zap className="w-5 h-5 fill-white" /> Continue Learning
                             </button>
                         </Link>
@@ -122,7 +128,7 @@ export default function DashboardPage() {
                             >
                                 <Trophy className="w-16 h-16 text-white" />
                             </motion.div>
-                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 bg-foreground text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-lg whitespace-nowrap z-20">
+                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 bg-foreground text-background text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-lg whitespace-nowrap z-20">
                                 {level}
                             </div>
                         </div>

@@ -5,13 +5,6 @@ import { motion } from "framer-motion";
 export const HookBlock = ({ text }: { text: string }) => {
     return (
         <div className="text-center px-4">
-            <motion.p
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                className="text-brand-primary font-display font-bold mb-4 tracking-[0.2em] uppercase text-sm"
-            >
-                Block 1 — The Hook
-            </motion.p>
             <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold font-display leading-[1.2] mb-10 text-foreground">
                 {text}
             </h2>
@@ -51,7 +44,7 @@ export const MemeBlock = ({ imageUrl, caption, explanation }: { imageUrl: string
 
 export const SummaryBlock = ({ title, bulletPoints }: { title: string, bulletPoints: string[] }) => {
     return (
-        <div className="bg-foreground p-12 rounded-[3.5rem] text-white shadow-2xl relative overflow-hidden group">
+        <div className="bg-foreground p-12 rounded-[3.5rem] text-background shadow-2xl relative overflow-hidden group">
             {/* Playful background texture */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-brand-primary opacity-10 rounded-full blur-3xl translate-x-32 -translate-y-32" />
 
@@ -70,7 +63,7 @@ export const SummaryBlock = ({ title, bulletPoints }: { title: string, bulletPoi
                                 <path d="M20.285 2l-11.285 11.567-5.286-5.011-3.714 3.716 9 8.728 15-15.285z" />
                             </svg>
                         </div>
-                        <span className="text-lg md:text-xl text-white/90 font-sans leading-relaxed">{point}</span>
+                        <span className="text-lg md:text-xl text-background/90 font-sans leading-relaxed">{point}</span>
                     </motion.li>
                 ))}
             </ul>

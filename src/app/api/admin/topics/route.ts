@@ -2,13 +2,17 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
+import { cache } from "@/lib/cache";
 
 export async function POST(req: Request) {
     try {
-        // Simple security: Check session
+        // Enforce RBAC: Check session and user role
         const session = await getServerSession(authOptions);
         if (!session) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        if ((session.user as any)?.role !== "ADMIN") {
+            return NextResponse.json({ error: "Forbidden: Admin access required." }, { status: 403 });
         }
 
         const payload = await req.json();
@@ -42,6 +46,9 @@ export async function POST(req: Request) {
                 content: JSON.stringify(contentBlocks)
             }
         });
+
+        // Invalidate topics cache
+        cache.delete("all-topics");
 
         return NextResponse.json({ success: true, topic: newTopic });
     } catch (error: any) {
