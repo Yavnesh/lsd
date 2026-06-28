@@ -16,11 +16,20 @@ export const LearningBlock = ({ children, className = "", delay = 0 }: LearningB
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-15%" }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay }}
-            className={`min-h-[50vh] flex flex-col justify-center items-center py-20 px-6 ${className}`}
+            className={`min-h-[50vh] flex flex-col justify-center items-center py-20 px-6 perspective-depth ${className}`}
         >
-            <div className="max-w-3xl w-full">
+            <motion.div 
+                className="max-w-3xl w-full transform-gpu"
+                whileHover={{ 
+                    rotateY: 6, 
+                    rotateX: -4, 
+                    scale: 1.01,
+                    z: 8
+                }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+            >
                 {children}
-            </div>
+            </motion.div>
         </motion.div>
     );
 };

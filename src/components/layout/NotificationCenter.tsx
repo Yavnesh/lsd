@@ -147,6 +147,16 @@ export function NotificationCenter() {
                                     })}
                                 </div>
                             )}
+
+                            <div className="border-t border-border mt-4 pt-3 text-center">
+                                <Link 
+                                    href="/notifications" 
+                                    onClick={() => setIsOpen(false)}
+                                    className="text-xs font-black uppercase tracking-wider text-brand-primary hover:underline block py-1"
+                                >
+                                    View All Notifications
+                                </Link>
+                            </div>
                         </motion.div>
                     </>
                 )}
