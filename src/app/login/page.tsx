@@ -30,14 +30,18 @@ export default function LoginPage() {
     };
 
     const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!email) return;
+        if (!email || !password) return;
         setLoading(true);
+        setError("");
 
         const res = await signIn("credentials", {
             email,
+            password,
             redirect: false,
             callbackUrl: "/learn"
         });
@@ -45,6 +49,7 @@ export default function LoginPage() {
         if (res?.ok) {
             router.replace("/learn");
         } else {
+            setError("Invalid email or password. Please try again.");
             setLoading(false);
         }
     };
@@ -74,6 +79,12 @@ export default function LoginPage() {
                         <p className="text-text-secondary font-medium font-sans">Ready to get your daily brain boost?</p>
                     </div>
 
+                    {error && (
+                        <div className="p-4 rounded-xl mb-6 bg-brand-error/10 border border-brand-error/20 text-brand-error text-sm font-bold">
+                            {error}
+                        </div>
+                    )}
+
                     <div className="space-y-4 mb-10 text-sans">
                         <button
                             onClick={handleGoogleLogin}
@@ -82,31 +93,35 @@ export default function LoginPage() {
                             <Google className="w-5 h-5 text-brand-secondary" />
                             <span>Continue with Google</span>
                         </button>
-                        <button
-                            onClick={handleLogin}
-                            className="w-full flex items-center justify-center gap-4 py-4 border-2 border-border rounded-2xl font-bold text-foreground hover:bg-background hover:border-brand-primary transition-all group btn-push"
-                        >
-                            <Mail className="w-5 h-5 text-brand-primary" />
-                            <span>Continue with Email</span>
-                        </button>
                     </div>
 
                     <div className="relative mb-10 text-center">
                         <div className="absolute inset-0 flex items-center">
                             <div className="w-full border-t border-border"></div>
                         </div>
-                        <span className="relative bg-card px-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.3em]">Or use magic link</span>
+                        <span className="relative bg-card px-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.3em]">Or use Credentials</span>
                     </div>
 
                     <form onSubmit={handleLogin} className="space-y-6">
                         <div className="space-y-2">
-                            <label className="block text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] ml-2">Work Email</label>
+                            <label className="block text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] ml-2">Email Address</label>
                             <input
                                 type="email"
                                 placeholder="you@mastermind.com"
                                 required
                                 value={email}
                                 onChange={e => setEmail(e.target.value)}
+                                className="w-full p-5 bg-background border-2 border-transparent focus:border-brand-primary focus:bg-card rounded-2xl outline-none transition-all font-medium text-foreground placeholder:opacity-30"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="block text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] ml-2">Password</label>
+                            <input
+                                type="password"
+                                placeholder="••••••••"
+                                required
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
                                 className="w-full p-5 bg-background border-2 border-transparent focus:border-brand-primary focus:bg-card rounded-2xl outline-none transition-all font-medium text-foreground placeholder:opacity-30"
                             />
                         </div>

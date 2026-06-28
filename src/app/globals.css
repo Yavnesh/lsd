@@ -5,6 +5,7 @@
 @theme {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
+  --font-game: var(--font-fredoka), ui-sans-serif, system-ui, sans-serif;
 
   /* Map CSS Vars to Tailwind Utility Classes */
   --color-background: var(--background);
@@ -21,45 +22,74 @@
   --color-brand-success: var(--success);
   --color-brand-error: #FF6B6B;
   --color-brand-orange: #FF9F43;
+  --color-brand-warning: #F7C948;
+  --color-brand-gold: var(--gold);
+  --color-brand-forest: var(--forest);
+  --color-brand-sky: var(--sky);
 
   /* Gradients */
   --background-image-gradient-primary: linear-gradient(135deg, var(--primary), var(--secondary));
   --background-image-gradient-secondary: linear-gradient(135deg, var(--secondary), var(--accent));
+  --background-image-gradient-gold: linear-gradient(135deg, #F7C948, #E8A020);
+  --background-image-gradient-forest: linear-gradient(135deg, #4CAF50, #1B5E20);
+  --background-image-gradient-game: linear-gradient(135deg, #9C6FE4, #7C4DFF, #29B6F6);
 }
 
 @layer base {
   :root,
   [data-theme='light'] {
-    --background: #F7F8FC;
-    --foreground: #1F2A44;
-    --card: #FFFFFF;
-    --card-foreground: #1F2A44;
-    --border: #E5E7EB;
-    --text-secondary: #475569;
+    /* Warm, organic game palette — light mode */
+    --background: #F5F0E8;          /* warm parchment */
+    --foreground: #2C1810;          /* deep wood brown */
+    --card: #FFFDF7;                /* warm white parchment */
+    --card-foreground: #2C1810;
+    --border: #DDD5C0;              /* warm beige border */
+    --text-secondary: #6B5A45;      /* warm muted brown */
 
-    --primary: #6C5CE7;
-    --secondary: #00BFFF;
+    --primary: #7C4DFF;             /* magic purple */
+    --secondary: #29B6F6;           /* sky crystal blue */
     --accent: #00E5FF;
-    --success: #32D74B;
+    --success: #4CAF50;             /* earth green */
+
+    /* Game-specific tokens */
+    --gold: #F7C948;
+    --forest: #2E7D32;
+    --sky: #0288D1;
+    --ember: #FF7043;
+    --parchment: #FFF8E7;
+    --deep-shadow: rgba(44, 24, 16, 0.15);
+    --card-glow: rgba(124, 77, 255, 0.08);
   }
 
   .dark,
   [data-theme='dark'] {
-    --background: #0F172A;
-    --foreground: #E2E8F0;
-    --card: #1E293B;
-    --card-foreground: #E2E8F0;
-    --border: #334155;
-    --text-secondary: #94A3B8;
+    /* Deep forest night — dark mode */
+    --background: #0F1A0F;          /* deep forest night */
+    --foreground: #E8F5E9;          /* soft leaf white */
+    --card: #1A2E1A;                /* forest undergrowth */
+    --card-foreground: #E8F5E9;
+    --border: #2E4A2E;              /* dark forest border */
+    --text-secondary: #81C784;      /* muted forest green */
 
-    --primary: #8B7CFF;
-    --secondary: #38BDF8;
-    --accent: #22D3EE;
-    --success: #4ADE80;
+    --primary: #B39DDB;             /* lavender magic */
+    --secondary: #4FC3F7;           /* clear sky blue */
+    --accent: #80DEEA;
+    --success: #66BB6A;
+
+    /* Game-specific tokens */
+    --gold: #FFD54F;
+    --forest: #66BB6A;
+    --sky: #4FC3F7;
+    --ember: #FF8A65;
+    --parchment: #1E3320;
+    --deep-shadow: rgba(0, 0, 0, 0.6);
+    --card-glow: rgba(179, 157, 219, 0.12);
   }
 }
 
-
+/* ============================================
+   BASE STYLES
+   ============================================ */
 
 body {
   background-color: var(--background);
@@ -69,32 +99,56 @@ body {
   transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
     color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   background-attachment: fixed;
+  /* Warm atmospheric background */
   background-image:
-    radial-gradient(at 0% 0%, rgba(108, 92, 231, 0.03) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(0, 191, 255, 0.03) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(124, 77, 255, 0.04) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(41, 182, 246, 0.04) 0px, transparent 50%),
+    radial-gradient(at 50% 80%, rgba(76, 175, 80, 0.03) 0px, transparent 50%);
 }
 
-h1,
-h2,
-h3,
-h4,
-.font-display {
+.dark body {
+  background-image:
+    radial-gradient(at 0% 0%, rgba(102, 187, 106, 0.06) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(179, 157, 219, 0.06) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(79, 195, 247, 0.04) 0px, transparent 50%);
+}
+
+h1, h2, h3, h4, .font-display {
   font-family: var(--font-display);
   font-weight: 700;
   letter-spacing: -0.01em;
 }
 
+.font-game {
+  font-family: var(--font-game), var(--font-display), sans-serif;
+}
+
+/* ============================================
+   GLASS & SURFACE UTILITIES
+   ============================================ */
+
 .glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 253, 247, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(221, 213, 192, 0.6);
 }
 
 .dark .glass {
-  background: rgba(30, 41, 59, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(26, 46, 26, 0.8);
+  border: 1px solid rgba(46, 74, 46, 0.5);
 }
+
+.glass-dark {
+  background: rgba(15, 26, 15, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(46, 74, 46, 0.3);
+}
+
+/* ============================================
+   GRADIENT UTILITIES
+   ============================================ */
 
 .gradient-primary {
   background: var(--background-image-gradient-primary);
@@ -104,6 +158,18 @@ h4,
   background: var(--background-image-gradient-secondary);
 }
 
+.gradient-gold {
+  background: var(--background-image-gradient-gold);
+}
+
+.gradient-forest {
+  background: var(--background-image-gradient-forest);
+}
+
+.gradient-game {
+  background: var(--background-image-gradient-game);
+}
+
 .gradient-text {
   background: var(--background-image-gradient-primary);
   -webkit-background-clip: text;
@@ -111,19 +177,176 @@ h4,
   background-clip: text;
 }
 
+.gradient-text-gold {
+  background: var(--background-image-gradient-gold);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================
+   GAME CARD SYSTEM
+   ============================================ */
+
+.game-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 2rem;
+  box-shadow:
+    0 4px 6px -1px var(--deep-shadow),
+    0 10px 25px -5px var(--deep-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.25s ease-out;
+}
+
+.game-card:hover {
+  transform: translateY(-6px);
+  box-shadow:
+    0 8px 16px -2px var(--deep-shadow),
+    0 20px 40px -8px var(--deep-shadow),
+    0 0 30px var(--card-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.game-card-glow {
+  box-shadow:
+    0 4px 6px -1px var(--deep-shadow),
+    0 10px 25px -5px var(--deep-shadow),
+    0 0 40px var(--card-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
 .card-shadow {
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 4px 20px -4px var(--deep-shadow);
 }
 
 .dark .card-shadow {
-  box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 30px -8px rgba(0, 0, 0, 0.5);
 }
 
-/* Duolingo-style bounce */
+/* ============================================
+   GAME BUTTON SYSTEM
+   ============================================ */
+
+/* Primary Quest Button — Gold/Purple, volumetric depth */
+.game-btn-primary {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 2rem;
+  border-radius: 1.25rem;
+  font-family: var(--font-game), var(--font-display), sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  color: white;
+  background: linear-gradient(160deg, #9C6FE4 0%, #7C4DFF 50%, #6535F5 100%);
+  border: none;
+  box-shadow:
+    0 6px 0 #5020C0,              /* press depth bottom */
+    0 8px 20px rgba(124, 77, 255, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.02em;
+}
+
+.game-btn-primary:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 9px 0 #5020C0,
+    0 12px 30px rgba(124, 77, 255, 0.5),
+    0 0 40px rgba(124, 77, 255, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+}
+
+.game-btn-primary:active {
+  transform: translateY(3px);
+  box-shadow:
+    0 2px 0 #5020C0,
+    0 4px 10px rgba(124, 77, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Gold Quest Button */
+.game-btn-gold {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 2rem;
+  border-radius: 1.25rem;
+  font-family: var(--font-game), var(--font-display), sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #3D2000;
+  background: linear-gradient(160deg, #FFE066 0%, #F7C948 50%, #E8A020 100%);
+  border: none;
+  box-shadow:
+    0 6px 0 #B07000,
+    0 8px 20px rgba(247, 201, 72, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.game-btn-gold:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 9px 0 #B07000,
+    0 12px 30px rgba(247, 201, 72, 0.5),
+    0 0 40px rgba(247, 201, 72, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.game-btn-gold:active {
+  transform: translateY(3px);
+  box-shadow:
+    0 2px 0 #B07000,
+    0 4px 10px rgba(247, 201, 72, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* Green Success Button */
+.game-btn-success {
+  background: linear-gradient(160deg, #66BB6A 0%, #4CAF50 50%, #388E3C 100%);
+  box-shadow:
+    0 6px 0 #1B5E20,
+    0 8px 20px rgba(76, 175, 80, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  color: white;
+  border-radius: 1.25rem;
+  padding: 0.875rem 2rem;
+  font-family: var(--font-game), var(--font-display), sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.game-btn-success:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 9px 0 #1B5E20,
+    0 12px 30px rgba(76, 175, 80, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.game-btn-success:active {
+  transform: translateY(3px);
+}
+
+/* Legacy push button (kept for compatibility) */
 @keyframes push {
-  50% {
-    transform: scale(0.96);
-  }
+  50% { transform: scale(0.96) translateY(2px); }
 }
 
 .btn-push:active {
@@ -135,6 +358,335 @@ h4,
   transition: transform 0.2s ease;
 }
 
+/* ============================================
+   GLOW UTILITIES
+   ============================================ */
+
+.glow-purple {
+  box-shadow: 0 0 20px rgba(124, 77, 255, 0.4), 0 0 40px rgba(124, 77, 255, 0.2);
+}
+
+.glow-gold {
+  box-shadow: 0 0 20px rgba(247, 201, 72, 0.5), 0 0 40px rgba(247, 201, 72, 0.25);
+}
+
+.glow-green {
+  box-shadow: 0 0 20px rgba(76, 175, 80, 0.4), 0 0 40px rgba(76, 175, 80, 0.2);
+}
+
+.glow-blue {
+  box-shadow: 0 0 20px rgba(41, 182, 246, 0.4), 0 0 40px rgba(41, 182, 246, 0.2);
+}
+
+.glow-red {
+  box-shadow: 0 0 20px rgba(255, 107, 107, 0.5), 0 0 40px rgba(255, 107, 107, 0.25);
+}
+
+/* ============================================
+   ATMOSPHERIC BACKGROUNDS
+   ============================================ */
+
+/* Forest World */
+.bg-world-forest {
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(76, 175, 80, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(46, 125, 50, 0.12) 0%, transparent 50%),
+    var(--background);
+}
+
+/* Sky World */
+.bg-world-sky {
+  background:
+    radial-gradient(ellipse at 70% 0%, rgba(41, 182, 246, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 30% 100%, rgba(2, 136, 209, 0.08) 0%, transparent 50%),
+    var(--background);
+}
+
+/* Magic World */
+.bg-world-magic {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(124, 77, 255, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 10% 80%, rgba(156, 111, 228, 0.1) 0%, transparent 50%),
+    var(--background);
+}
+
+/* Quest World */
+.bg-world-quest {
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(247, 201, 72, 0.08) 0%, transparent 40%),
+    radial-gradient(ellipse at 70% 80%, rgba(255, 112, 67, 0.06) 0%, transparent 40%),
+    var(--background);
+}
+
+/* ============================================
+   ANIMATION KEYFRAMES
+   ============================================ */
+
+/* Floating idle animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+
+.floating {
+  animation: float 3s ease-in-out infinite;
+}
+
+.floating-slow {
+  animation: float 5s ease-in-out infinite;
+}
+
+.floating-fast {
+  animation: float 2s ease-in-out infinite;
+}
+
+/* Shimmer effect for locked items */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+/* Glow pulse */
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.6; box-shadow: 0 0 15px currentColor; }
+  50% { opacity: 1; box-shadow: 0 0 35px currentColor, 0 0 60px currentColor; }
+}
+
+.glow-animate {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* Number pop for XP gains */
+@keyframes number-pop {
+  0% { transform: scale(0.5) translateY(0); opacity: 0; }
+  50% { transform: scale(1.3) translateY(-20px); opacity: 1; }
+  100% { transform: scale(1) translateY(-40px); opacity: 0; }
+}
+
+.number-pop {
+  animation: number-pop 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Coin spin */
+@keyframes coin-spin {
+  0% { transform: rotateY(0deg); }
+  100% { transform: rotateY(360deg); }
+}
+
+.coin-spin {
+  animation: coin-spin 1s linear infinite;
+}
+
+/* Star burst */
+@keyframes star-burst {
+  0% { transform: scale(0) rotate(0deg); opacity: 1; }
+  100% { transform: scale(2.5) rotate(180deg); opacity: 0; }
+}
+
+/* Victory bounce */
+@keyframes victory-bounce {
+  0%, 100% { transform: scale(1); }
+  30% { transform: scale(1.15); }
+  60% { transform: scale(0.95); }
+}
+
+.victory-bounce {
+  animation: victory-bounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* XP bar fill */
+@keyframes xp-fill {
+  from { width: 0%; }
+}
+
+/* Shake for wrong answer */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-8px) rotate(-1deg); }
+  30% { transform: translateX(8px) rotate(1deg); }
+  45% { transform: translateX(-6px); }
+  60% { transform: translateX(6px); }
+  75% { transform: translateX(-3px); }
+  90% { transform: translateX(3px); }
+}
+
+.shake {
+  animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+/* Orbit spin */
+@keyframes orbitSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.orbit-spin-slow {
+  animation: orbitSpin 40s infinite linear;
+}
+
+/* Twinkle stars */
+@keyframes starsTwinkle {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.35; }
+}
+
+.stars-bg {
+  background-image:
+    radial-gradient(1.5px 1.5px at 20px 30px, #ffffff, rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 150px 70px, #ffffff, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 80px 160px, rgba(255,255,255,0.8), rgba(0,0,0,0)),
+    radial-gradient(1px 1.5px at 230px 220px, #ffffff, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 310px 110px, rgba(255,255,255,0.9), rgba(0,0,0,0));
+  background-repeat: repeat;
+  background-size: 400px 400px;
+  animation: starsTwinkle 12s infinite ease-in-out;
+}
+
+/* Ambient dust particles */
+@keyframes particle-drift {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  20% { opacity: 0.6; }
+  80% { opacity: 0.4; }
+  100% { transform: translate(var(--drift-x, 40px), var(--drift-y, -80px)) rotate(180deg); opacity: 0; }
+}
+
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: particle-drift var(--duration, 4s) ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+/* Slide-up entrance (spring) */
+@keyframes slide-up-spring {
+  0% { opacity: 0; transform: translateY(30px) scale(0.95); }
+  70% { opacity: 1; transform: translateY(-4px) scale(1.01); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+.animate-slide-up {
+  animation: slide-up-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Quest reveal */
+@keyframes quest-reveal {
+  0% { clip-path: inset(0 100% 0 0); opacity: 0.5; }
+  100% { clip-path: inset(0 0% 0 0); opacity: 1; }
+}
+
+/* ============================================
+   GAME HUD ELEMENTS
+   ============================================ */
+
+.game-hud {
+  background: rgba(15, 26, 15, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(76, 175, 80, 0.2);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.dark .game-hud {
+  background: rgba(10, 18, 10, 0.95);
+  border-color: rgba(76, 175, 80, 0.15);
+}
+
+/* XP Progress Bar */
+.xp-bar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 9999px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 2px;
+}
+
+.xp-bar-fill {
+  background: linear-gradient(90deg, #9C6FE4, #7C4DFF, #29B6F6);
+  border-radius: 9999px;
+  box-shadow: 0 0 12px rgba(124, 77, 255, 0.6);
+  transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ============================================
+   STAGE / QUEST CARDS
+   ============================================ */
+
+.stage-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background: var(--background-image-gradient-primary);
+  color: white;
+  font-family: var(--font-game), var(--font-display), sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(124, 77, 255, 0.4);
+}
+
+/* Parchment card style */
+.parchment-card {
+  background: linear-gradient(145deg, #FFF8E7, #FFF3D4);
+  border: 2px solid rgba(221, 181, 100, 0.4);
+  box-shadow:
+    0 4px 15px rgba(180, 130, 40, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -1px 0 rgba(180, 130, 40, 0.1);
+}
+
+.dark .parchment-card {
+  background: linear-gradient(145deg, #1E3320, #1A2E1A);
+  border-color: rgba(76, 125, 50, 0.3);
+  box-shadow:
+    0 4px 15px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(76, 175, 80, 0.05);
+}
+
+/* ============================================
+   3D & PERSPECTIVE
+   ============================================ */
+
+.perspective-depth {
+  perspective: 1200px;
+}
+
+.planet-sphere {
+  border-radius: 9999px;
+  background-size: cover;
+  box-shadow:
+    inset -16px -16px 32px rgba(0, 0, 0, 0.75),
+    inset 8px 8px 16px rgba(255, 255, 255, 0.15),
+    0 10px 40px rgba(0, 0, 0, 0.5);
+  position: relative;
+  overflow: hidden;
+}
+
+.planet-glow-purple { box-shadow: 0 0 35px rgba(124, 77, 255, 0.5); }
+.planet-glow-pink { box-shadow: 0 0 35px rgba(244, 63, 94, 0.35); }
+.planet-glow-amber { box-shadow: 0 0 35px rgba(245, 158, 11, 0.35); }
+.planet-glow-green { box-shadow: 0 0 35px rgba(76, 175, 80, 0.4); }
+.planet-glow-blue { box-shadow: 0 0 35px rgba(41, 182, 246, 0.4); }
+
+/* ============================================
+   GLOBAL UTILITIES
+   ============================================ */
+
 * {
   border-color: var(--border);
 }
@@ -144,19 +696,62 @@ h4,
 }
 
 /* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--background);
-}
-
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--background); }
 ::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 10px;
 }
+::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
+/* Focus visible for accessibility */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+/* Smooth selection */
+::selection {
+  background: rgba(124, 77, 255, 0.25);
+  color: var(--foreground);
+}
+
+/* ============================================
+   WORLD MAP STYLES
+   ============================================ */
+
+.fog-of-war {
+  background: rgba(15, 26, 15, 0.85);
+  backdrop-filter: blur(4px);
+}
+
+.world-path {
+  stroke-dasharray: 8 6;
+  stroke: rgba(247, 201, 72, 0.5);
+  animation: path-march 20s linear infinite;
+}
+
+@keyframes path-march {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -100; }
+}
+
+/* ============================================
+   LEADERBOARD / PODIUM
+   ============================================ */
+
+.podium-gold {
+  background: linear-gradient(160deg, #FFE066 0%, #F7C948 60%, #C8890A 100%);
+  box-shadow: 0 0 30px rgba(247, 201, 72, 0.4), 0 8px 0 #8B6000;
+}
+
+.podium-silver {
+  background: linear-gradient(160deg, #E8E8E8 0%, #C0C0C0 60%, #909090 100%);
+  box-shadow: 0 0 20px rgba(192, 192, 192, 0.4), 0 6px 0 #666;
+}
+
+.podium-bronze {
+  background: linear-gradient(160deg, #E8A06A 0%, #CD7F32 60%, #8B5000 100%);
+  box-shadow: 0 0 20px rgba(205, 127, 50, 0.4), 0 5px 0 #5C3000;
 }

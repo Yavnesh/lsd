@@ -41,8 +41,24 @@ export default function AdminPage() {
     const [statusMessage, setStatusMessage] = useState("");
     const [error, setError] = useState(false);
 
+    if (status === "loading") {
+        return (
+            <main className="min-h-screen bg-background flex items-center justify-center">
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 border-4 border-brand-primary border-t-transparent rounded-full animate-spin mx-auto" />
+                    <p className="text-lg text-text-secondary font-bold font-display uppercase tracking-widest">Loading...</p>
+                </div>
+            </main>
+        );
+    }
+
     if (status === "unauthenticated") {
         router.replace("/login");
+        return null;
+    }
+
+    if (session && (session.user as any)?.role !== "ADMIN") {
+        router.replace("/learn");
         return null;
     }
 
