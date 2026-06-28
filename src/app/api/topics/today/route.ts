@@ -54,9 +54,34 @@ export async function GET(req: NextRequest) {
         // Parse content JSON block
         const parsedContent = topic.content ? JSON.parse(topic.content) : [];
 
+        // Build prediction structure using the Hook text as a counter-intuitive statement
+        const hookText = parsedContent.find((b: any) => b.type === "hook")?.text || "Every action has an automated cognitive bias.";
+        const prediction = {
+            statement: hookText,
+            correctAnswer: true,
+            explanation: parsedContent.find((b: any) => b.type === "meme")?.explanation || "Teachable moment."
+        };
+
+        // Resolve tomorrow's scheduled parameters
+        const tomorrowSchedule = getScheduledSeasonAndDay(timezone || undefined, 1);
+        const tomorrowTopic = await prisma.topic.findFirst({
+            where: {
+                season: tomorrowSchedule.season,
+                dayOfWeek: tomorrowSchedule.dayOfWeek
+            }
+        });
+
+        const tomorrowTeaser = {
+            title: tomorrowTopic?.title || `Dynamic Lesson on ${tomorrowSchedule.season}`,
+            emoji: tomorrowTopic?.emoji || "💡",
+            isPremium: tomorrowSchedule.dayOfWeek >= 6
+        };
+
         const responseData = {
             ...topic,
-            content: parsedContent
+            content: parsedContent,
+            prediction,
+            tomorrow: tomorrowTeaser
         };
 
         // Cache the formatted topic for 1 minute

@@ -1,9 +1,15 @@
-export function calculateStreak(activities: { completedAt: Date }[], timezone: string = "UTC"): number {
-    if (activities.length === 0) return 0;
+export function calculateStreak(
+    activities: { completedAt: Date }[], 
+    timezone: string = "UTC",
+    streakShields: number = 0
+): { streak: number; shieldsConsumed: number } {
+    if (activities.length === 0) return { streak: 0, shieldsConsumed: 0 };
 
-    // Convert completedAt dates to local date strings (YYYY-MM-DD) in the user's timezone
     const completedDates = new Set<string>();
-    for (const act of activities) {
+    // Sort activities by date descending
+    const sortedActs = [...activities].sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime());
+
+    for (const act of sortedActs) {
         try {
             const dateStr = new Intl.DateTimeFormat("en-US", {
                 timeZone: timezone,
@@ -15,12 +21,10 @@ export function calculateStreak(activities: { completedAt: Date }[], timezone: s
             const [m, d, y] = dateStr.split("/");
             completedDates.add(`${y}-${m}-${d}`);
         } catch (e) {
-            const dateStr = act.completedAt.toISOString().split("T")[0];
-            completedDates.add(dateStr);
+            completedDates.add(act.completedAt.toISOString().split("T")[0]);
         }
     }
 
-    // Get today's and yesterday's local date string in the user's timezone
     let todayStr = "";
     let yesterdayStr = "";
     try {
@@ -47,20 +51,32 @@ export function calculateStreak(activities: { completedAt: Date }[], timezone: s
         yesterdayStr = yesterday.toISOString().split("T")[0];
     }
 
-    // If they haven't completed today's or yesterday's quiz, the streak is broken (0)
-    if (!completedDates.has(todayStr) && !completedDates.has(yesterdayStr)) {
-        return 0;
+    let shieldsConsumed = 0;
+    let startPoint: Date;
+
+    // Check if streak is currently active
+    if (completedDates.has(todayStr) || completedDates.has(yesterdayStr)) {
+        startPoint = completedDates.has(todayStr) ? new Date() : (() => {
+            const d = new Date();
+            d.setDate(d.getDate() - 1);
+            return d;
+        })();
+    } else {
+        // Streak would be broken (0) normally
+        if (streakShields > 0) {
+            // Streak is saved by shield!
+            // Start counting from the most recent completed activity date
+            const lastAct = sortedActs[0];
+            startPoint = new Date(lastAct.completedAt);
+            shieldsConsumed = 1; // Consume one shield
+        } else {
+            return { streak: 0, shieldsConsumed: 0 };
+        }
     }
 
-    // Start checking backward from today (or yesterday if today is not completed yet)
     let currentStreak = 0;
-    const startPoint = completedDates.has(todayStr) ? new Date() : (() => {
-        const d = new Date();
-        d.setDate(d.getDate() - 1);
-        return d;
-    })();
-
     let checkDate = new Date(startPoint);
+    
     while (true) {
         let checkDateStr = "";
         try {
@@ -78,12 +94,17 @@ export function calculateStreak(activities: { completedAt: Date }[], timezone: s
 
         if (completedDates.has(checkDateStr)) {
             currentStreak++;
-            // Move to previous day
             checkDate.setDate(checkDate.getDate() - 1);
         } else {
-            break;
+            // Check if we can use another shield to bypass a gap day
+            if (streakShields > shieldsConsumed) {
+                shieldsConsumed++;
+                checkDate.setDate(checkDate.getDate() - 1); // Skip this gap day
+            } else {
+                break;
+            }
         }
     }
 
-    return currentStreak;
+    return { streak: currentStreak, shieldsConsumed };
 }

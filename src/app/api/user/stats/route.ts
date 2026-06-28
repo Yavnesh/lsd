@@ -24,17 +24,20 @@ export async function GET(req: NextRequest) {
             orderBy: { completedAt: "desc" }
         });
 
-        // Dynamic streak healing
-        const calculatedStreak = calculateStreak(activities, timezone);
-        if (userStats && userStats.streak !== calculatedStreak) {
+        // Dynamic streak healing & shield consumption
+        const { streak: calculatedStreak, shieldsConsumed } = calculateStreak(activities, timezone, userStats?.streakShields || 0);
+        if (userStats && (userStats.streak !== calculatedStreak || shieldsConsumed > 0)) {
             userStats = await prisma.userStat.update({
                 where: { userId },
-                data: { streak: calculatedStreak }
+                data: { 
+                    streak: calculatedStreak,
+                    streakShields: Math.max(0, userStats.streakShields - shieldsConsumed)
+                }
             });
         }
 
         return NextResponse.json({
-            stats: userStats || { xp: 0, streak: 0, level: "Curious Mind" },
+            stats: userStats || { xp: 0, streak: 0, level: "Curious Mind", streakShields: 1 },
             activities
         });
     } catch (error) {
@@ -66,14 +69,40 @@ export async function POST(req: Request) {
                         userId,
                         xp: 0,
                         streak: 0,
-                        level: "Curious Mind"
+                        level: "Curious Mind",
+                        streakShields: 1
                     }
                 });
             }
 
+            // 2. Roll variable bonus rewards if correct
+            let bonusXpEarned = 0;
+            let bonusShieldsEarned = 0;
+            let unlockedChest = null;
+
+            if (quizCorrect && topicId) {
+                // Check if they completed it before today
+                const alreadyCompleted = await tx.userActivity.findFirst({
+                    where: { userId, topicId, status: "COMPLETED" }
+                });
+                
+                if (!alreadyCompleted) {
+                    const rand = Math.random();
+                    if (rand < 0.70) {
+                        bonusXpEarned = [10, 20, 30, 50][Math.floor(Math.random() * 4)];
+                        unlockedChest = { type: "XP", amount: bonusXpEarned, label: `+${bonusXpEarned} Bonus XP` };
+                    } else if (rand < 0.90) {
+                        bonusShieldsEarned = 1;
+                        unlockedChest = { type: "SHIELD", amount: 1, label: "+1 Streak Shield" };
+                    } else {
+                        unlockedChest = { type: "BADGE", label: "Rare Badge Unlocked!" };
+                    }
+                }
+            }
+
             // Calculate new XP
             const actualXpToAdd = quizCorrect === false ? 0 : (xpToAdd || 0);
-            const newXp = userStat.xp + actualXpToAdd;
+            const newXp = userStat.xp + actualXpToAdd + bonusXpEarned;
 
             // Calculate new level based on XP
             let newLevel = userStat.level;
@@ -83,7 +112,7 @@ export async function POST(req: Request) {
             else if (newXp >= 500) newLevel = "Analyst";
             else if (newXp >= 100) newLevel = "Thinker";
 
-            // 2. Record activity first
+            // 3. Record activity first
             if (topicId) {
                 await tx.userActivity.upsert({
                     where: {
@@ -112,12 +141,12 @@ export async function POST(req: Request) {
                 });
             }
 
-            // 3. Compute dynamic streak from all activities
+            // 4. Compute dynamic streak from all activities
             const allActivities = await tx.userActivity.findMany({
                 where: { userId, status: "COMPLETED" },
                 orderBy: { completedAt: "desc" }
             });
-            const computedStreak = calculateStreak(allActivities, timezone || "UTC");
+            const { streak: computedStreak, shieldsConsumed } = calculateStreak(allActivities, timezone || "UTC", userStat.streakShields);
 
             // Update user stats
             const updatedStat = await tx.userStat.update({
@@ -125,6 +154,7 @@ export async function POST(req: Request) {
                 data: {
                     xp: newXp,
                     streak: computedStreak,
+                    streakShields: Math.max(0, userStat.streakShields - shieldsConsumed + bonusShieldsEarned),
                     level: newLevel
                 }
             });
@@ -134,7 +164,7 @@ export async function POST(req: Request) {
                 where: { userId_topicId: { userId, topicId } }
             }) : null;
 
-            return { stats: updatedStat, activity };
+            return { stats: updatedStat, activity, unlockedChest };
         });
 
         return NextResponse.json(result);

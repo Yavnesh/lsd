@@ -43,10 +43,15 @@ export default function LearnPage() {
         restDelta: 0.001
     });
 
-    const [topic, setTopic] = useState<Topic | null>(null);
+    const [topic, setTopic] = useState<any>(null);
     const [activity, setActivity] = useState<any>(null);
     const [suggestions, setSuggestions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // Phase 1 Gamification States
+    const [predictionAnswered, setPredictionAnswered] = useState(false);
+    const [predictionChoice, setPredictionChoice] = useState<boolean | null>(null);
+    const [chestReward, setChestReward] = useState<any>(null);
 
     useEffect(() => {
         async function loadData() {
@@ -69,6 +74,9 @@ export default function LearnPage() {
                         const userAct = statsData.activities?.find((a: any) => a.topicId === todayTopic.id);
                         if (userAct) {
                             setActivity(userAct);
+                            if (userAct.status === "COMPLETED") {
+                                setPredictionAnswered(true);
+                            }
                         }
                     }
 
@@ -91,7 +99,10 @@ export default function LearnPage() {
 
     const handleQuizSuccess = async (selectedIdx: number) => {
         if (topic) {
-            await addXp(50, topic.id, true, selectedIdx, true);
+            const data = await addXp(50, topic.id, true, selectedIdx, true);
+            if (data?.unlockedChest) {
+                setChestReward(data.unlockedChest);
+            }
             // Refresh activity state
             const statsRes = await fetch("/api/user/stats");
             if (statsRes.ok) {
@@ -121,6 +132,11 @@ export default function LearnPage() {
         }
     };
 
+    const handlePredictionVote = (choice: boolean) => {
+        setPredictionChoice(choice);
+        setPredictionAnswered(true);
+    };
+
     if (loading) {
         return (
             <main className="min-h-screen bg-background text-foreground flex items-center justify-center">
@@ -144,6 +160,59 @@ export default function LearnPage() {
         );
     }
 
+    // Render Dopamine Primer prediction screen overlay
+    if (!predictionAnswered && activity?.status !== "COMPLETED") {
+        return (
+            <main className="min-h-screen bg-background text-foreground flex flex-col justify-between">
+                <Navbar />
+                <div className="flex-grow flex items-center justify-center pt-28 px-6">
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="max-w-2xl w-full bg-card rounded-[3.5rem] border border-border p-8 md:p-12 text-center card-shadow relative overflow-hidden"
+                    >
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-brand-primary/10 rounded-full blur-3xl -translate-y-12" />
+                        
+                        <div className="relative z-10 space-y-8">
+                            <span className="bg-brand-primary/10 text-brand-primary font-black uppercase text-xs px-4 py-2 rounded-full tracking-[0.2em]">
+                                Dopamine Primer 🧠
+                            </span>
+                            
+                            <h2 className="text-3xl md:text-4xl font-display font-black leading-tight text-foreground">
+                                Do you think this statement is true?
+                            </h2>
+                            
+                            <div className="bg-background p-6 md:p-8 rounded-3xl border border-border flex items-center justify-center min-h-[120px]">
+                                <p className="text-xl md:text-2xl font-serif text-text-secondary leading-relaxed italic">
+                                    "{topic.prediction?.statement}"
+                                </p>
+                            </div>
+                            
+                            <div className="flex gap-4 max-w-md mx-auto">
+                                <button 
+                                    onClick={() => handlePredictionVote(true)}
+                                    className="flex-grow bg-brand-success/15 hover:bg-brand-success hover:text-white border-2 border-brand-success/20 text-brand-success font-black py-4 rounded-2xl text-lg transition-all btn-push cursor-pointer"
+                                >
+                                    YES, True
+                                </button>
+                                <button 
+                                    onClick={() => handlePredictionVote(false)}
+                                    className="flex-grow bg-brand-danger/15 hover:bg-brand-danger hover:text-white border-2 border-brand-danger/20 text-brand-danger font-black py-4 rounded-2xl text-lg transition-all btn-push cursor-pointer"
+                                >
+                                    NO, False
+                                </button>
+                            </div>
+                            
+                            <p className="text-xs text-text-secondary font-medium">
+                                Lock in your prediction to reveal today's lesson.
+                            </p>
+                        </div>
+                    </motion.div>
+                </div>
+            </main>
+        );
+    }
+
     return (
         <main className="min-h-screen pb-40 bg-background text-foreground">
             <Navbar />
@@ -156,7 +225,26 @@ export default function LearnPage() {
 
             <GamificationHeader xp={xp} streak={streak} level={level} />
 
-            <section className="pt-40">
+            {/* Today's Brain Upgrade Stats Bar */}
+            <div className="container mx-auto px-6 pt-36 max-w-4xl">
+                <div className="bg-card/50 backdrop-blur-sm border border-border px-6 py-4 rounded-3xl flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <span className="bg-brand-primary/10 text-brand-primary font-black uppercase text-[10px] px-3 py-1.5 rounded-full tracking-wider">
+                            Brain Upgrade
+                        </span>
+                        <div className="flex items-center gap-2 text-sm font-bold text-text-secondary">
+                            <span>⏱️ 2 min read</span>
+                            <span className="text-border">•</span>
+                            <span className="text-brand-warning">🔥 Hard difficulty</span>
+                        </div>
+                    </div>
+                    <div className="text-xs text-brand-primary font-bold bg-brand-primary/5 px-4 py-2 rounded-full border border-brand-primary/10">
+                        ⚡ Only 4% of users solve this today
+                    </div>
+                </div>
+            </div>
+
+            <section className="pt-12">
                 <CountdownTimer hasCompletedToday={activity?.status === "COMPLETED"} />
                 <div className="container mx-auto px-6 mb-12 text-center">
                     <motion.h1 
@@ -168,7 +256,7 @@ export default function LearnPage() {
                     </motion.h1>
                 </div>
 
-                {topic.content.map((block, index) => {
+                {topic.content.map((block: any, index: number) => {
                     switch (block.type) {
                         case "hook":
                             return (
@@ -264,6 +352,42 @@ export default function LearnPage() {
                                                 teaser={block.teaser || ""}
                                             />
                                         </motion.div>
+
+                                        {/* Prediction Results & Tomorrow's Teaser End Screen */}
+                                        <div className="mt-16 bg-card border border-border rounded-[3rem] p-8 md:p-12 text-left relative overflow-hidden card-shadow">
+                                            <div className="absolute top-0 right-0 w-48 h-48 bg-brand-primary/5 rounded-full blur-3xl -translate-y-12 translate-x-12" />
+                                            
+                                            <div className="space-y-8 relative z-10">
+                                                <div>
+                                                    <span className="bg-brand-success/10 text-brand-success font-black uppercase text-[10px] px-3 py-1.5 rounded-full tracking-widest block w-fit mb-4">
+                                                        Prediction Result 🎯
+                                                    </span>
+                                                    <h3 className="text-2xl font-display font-black text-foreground mb-2">
+                                                        You guessed: {predictionChoice === null ? "Locked" : (predictionChoice ? "YES, True" : "NO, False")}
+                                                    </h3>
+                                                    <p className="text-lg text-text-secondary leading-relaxed font-sans">
+                                                        <strong>Surprise! It was TRUE.</strong> {topic.prediction?.explanation}
+                                                    </p>
+                                                </div>
+
+                                                <div className="border-t border-border pt-8">
+                                                    <span className="bg-brand-primary/10 text-brand-primary font-black uppercase text-[10px] px-3 py-1.5 rounded-full tracking-widest block w-fit mb-4">
+                                                        Next Brain Drop 🚀
+                                                    </span>
+                                                    <div className="flex items-start gap-4">
+                                                        <span className="text-5xl">{topic.tomorrow?.emoji || "💡"}</span>
+                                                        <div>
+                                                            <h4 className="text-xl font-display font-black text-foreground">
+                                                                {topic.tomorrow?.title || "Tomorrow's Core Model"}
+                                                            </h4>
+                                                            <p className="text-text-secondary text-sm mt-1">
+                                                                {topic.tomorrow?.isPremium ? "⭐ Premium Upgrade Drop" : "⚡ Free Daily Drop"} • Unlocks at 00:00 local time. Keep that streak!
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </LearningBlock>
                             );
@@ -272,6 +396,43 @@ export default function LearnPage() {
                     }
                 })}
             </section>
+
+            {/* Variable Reward Chest Modal Overlay */}
+            {chestReward && (
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-[100] flex items-center justify-center p-6">
+                    <motion.div 
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="max-w-md w-full bg-card border border-border p-8 rounded-[3.5rem] text-center card-shadow relative overflow-hidden"
+                    >
+                        <div className="absolute inset-0 bg-gradient-to-b from-brand-primary/5 to-transparent pointer-events-none" />
+                        
+                        <div className="space-y-6 relative z-10">
+                            <span className="text-6xl animate-bounce inline-block">🎁</span>
+                            <h3 className="text-3xl font-display font-black text-foreground">Bonus Chest Opened!</h3>
+                            <p className="text-text-secondary text-sm">Your learning consistency secured a variable bonus reward:</p>
+                            
+                            <div className="bg-brand-primary/10 border-2 border-brand-primary/20 p-6 rounded-2xl inline-block w-full">
+                                <span className="text-2xl font-black text-brand-primary font-display block">
+                                    {chestReward.label}
+                                </span>
+                                {chestReward.type === "SHIELD" && (
+                                    <span className="text-xs text-text-secondary mt-1 block">
+                                        Automatically protects your streak if you miss a day!
+                                    </span>
+                                )}
+                            </div>
+                            
+                            <button 
+                                onClick={() => setChestReward(null)}
+                                className="w-full gradient-primary text-white font-bold py-4 rounded-xl btn-push cursor-pointer"
+                            >
+                                Collect Reward
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </main>
     );
 }

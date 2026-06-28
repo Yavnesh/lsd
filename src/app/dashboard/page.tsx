@@ -21,7 +21,7 @@ interface Activity {
 }
 
 export default function DashboardPage() {
-    const { xp, streak, level, syncWithDatabase } = useUserStore();
+    const { xp, streak, level, syncWithDatabase, streakShields } = useUserStore();
     const { data: session, status } = useSession();
     const router = useRouter();
 
@@ -58,7 +58,7 @@ export default function DashboardPage() {
     if (status !== "authenticated") return null;
 
     const stats = [
-        { label: "Streak", value: `${streak} Days`, icon: Flame, color: "text-brand-orange", bg: "bg-brand-orange/10" },
+        { label: "Streak", value: `${streak} Days (${streakShields} Shield${streakShields !== 1 ? 's' : ''})`, icon: Flame, color: "text-brand-orange", bg: "bg-brand-orange/10" },
         { label: "Brain XP", value: xp.toLocaleString(), icon: Trophy, color: "text-brand-primary", bg: "bg-brand-primary/10" },
         { label: "Intel Ops", value: `${activities.length} completed`, icon: Brain, color: "text-brand-secondary", bg: "bg-brand-secondary/10" },
         { label: "Accuracy", value: "100%", icon: Target, color: "text-brand-success", bg: "bg-brand-success/10" },

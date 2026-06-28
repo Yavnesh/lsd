@@ -10,7 +10,8 @@ interface UserState {
     userEmail: string;
     userAvatar: string;
     suggestedAvatars: string[];
-    addXp: (amount: number, topicId?: string, quizCorrect?: boolean, selectedOptionIndex?: number, incrementStreak?: boolean) => Promise<void>;
+    streakShields: number;
+    addXp: (amount: number, topicId?: string, quizCorrect?: boolean, selectedOptionIndex?: number, incrementStreak?: boolean) => Promise<any>;
     incrementStreak: () => Promise<void>;
     login: (name: string, email: string, avatar: string, suggestedAvatars: string[]) => void;
     logout: () => void;
@@ -39,6 +40,7 @@ export const useUserStore = create<UserState>()(
             userEmail: '',
             userAvatar: 'G',
             suggestedAvatars: [],
+            streakShields: 1,
 
             addXp: async (amount, topicId, quizCorrect, selectedOptionIndex, incrementStreak) => {
                 // Optimistic local update
@@ -47,6 +49,7 @@ export const useUserStore = create<UserState>()(
                 
                 if (get().isLoggedIn) {
                     try {
+                        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
                         const res = await fetch('/api/user/stats', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -56,7 +59,8 @@ export const useUserStore = create<UserState>()(
                                 earnedXp: amount,
                                 quizCorrect,
                                 selectedOptionIndex,
-                                incrementStreak
+                                incrementStreak,
+                                timezone: tz
                             })
                         });
                         if (res.ok) {
@@ -65,24 +69,28 @@ export const useUserStore = create<UserState>()(
                                 set({
                                     xp: data.stats.xp,
                                     streak: data.stats.streak,
-                                    level: data.stats.level
+                                    level: data.stats.level,
+                                    streakShields: data.stats.streakShields
                                 });
                             }
+                            return data;
                         }
                     } catch (e) {
                         console.error("Failed to sync XP with backend", e);
                     }
                 }
+                return null;
             },
 
             incrementStreak: async () => {
                 set((state) => ({ streak: state.streak + 1 }));
                 if (get().isLoggedIn) {
                     try {
+                        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
                         const res = await fetch('/api/user/stats', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ incrementStreak: true })
+                            body: JSON.stringify({ incrementStreak: true, timezone: tz })
                         });
                         if (res.ok) {
                             const data = await res.json();
@@ -90,7 +98,8 @@ export const useUserStore = create<UserState>()(
                                 set({
                                     xp: data.stats.xp,
                                     streak: data.stats.streak,
-                                    level: data.stats.level
+                                    level: data.stats.level,
+                                    streakShields: data.stats.streakShields
                                 });
                             }
                         }
@@ -119,7 +128,8 @@ export const useUserStore = create<UserState>()(
                 userName: 'Guest', 
                 userEmail: '',
                 userAvatar: 'G',
-                suggestedAvatars: []
+                suggestedAvatars: [],
+                streakShields: 1
             }),
 
             checkLevelUp: () => {
@@ -156,7 +166,8 @@ export const useUserStore = create<UserState>()(
                         set({
                             xp: data.stats.xp,
                             streak: data.stats.streak,
-                            level: data.stats.level
+                            level: data.stats.level,
+                            streakShields: data.stats.streakShields
                         });
                     }
                 } catch (e) {
@@ -174,7 +185,8 @@ export const useUserStore = create<UserState>()(
                 userName: state.userName,
                 userEmail: state.userEmail,
                 userAvatar: state.userAvatar,
-                suggestedAvatars: state.suggestedAvatars
+                suggestedAvatars: state.suggestedAvatars,
+                streakShields: state.streakShields
             }),
         }
     )

@@ -34,16 +34,18 @@ model User {
 }
 
 model UserStat {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                     String   @id @default(cuid())
+  userId                 String   @unique
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  streak    Int      @default(0)
-  xp        Int      @default(0)
-  level     String   @default("Curious Mind")
+  streak                 Int      @default(0)
+  xp                     Int      @default(0)
+  level                  String   @default("Curious Mind")
+  streakShields          Int      @default(1)
+  predictionCorrectCount Int      @default(0)
   
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 }
 
 model Topic {

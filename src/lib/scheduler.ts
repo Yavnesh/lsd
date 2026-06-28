@@ -1,5 +1,8 @@
-export function getScheduledSeasonAndDay(timezone?: string) {
+export function getScheduledSeasonAndDay(timezone?: string, offsetDays: number = 0) {
     let now = new Date();
+    if (offsetDays) {
+        now.setDate(now.getDate() + offsetDays);
+    }
     
     if (timezone) {
         try {
