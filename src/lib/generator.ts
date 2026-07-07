@@ -356,12 +356,12 @@ export async function generateDailyBatch(season: string, dayOfWeek: number): Pro
                 const fallbacks = RICH_FALLBACKS[season] || [];
                 const byCluster = fallbacks.find(f => f.cluster === cluster) || fallbacks[i] || fallbacks[0];
                 if (!byCluster) { results.errors.push(`No fallback for ${season} / ${cluster}`); continue; }
-                generated = {
+                 generated = {
                     ...byCluster,
                     slug: byCluster.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
                     season,
                     dayOfWeek,
-                    contentBlocks: byCluster.contentBlocks,
+                    contentBlocks: ensure12StepContent(byCluster.title, byCluster.summary, byCluster.emoji, byCluster.contentBlocks),
                 };
             }
 
@@ -416,14 +416,34 @@ export async function generateDailyBatch(season: string, dayOfWeek: number): Pro
 // GEMINI API CALL
 // ═══════════════════════════════════════════════════════════════
 async function generateSingleWithGemini(season: string, dayOfWeek: number, cluster: string, apiKey: string) {
-    const prompt = `Generate a daily micro-learning lesson for a gamified app named LSD (Learn Something Daily).
-The lesson MUST match these attributes exactly:
-- Season (Theme World): "${season}"
-- Topic Cluster (Sub-category): "${cluster}"  
-- Day of Week (1=Monday to 7=Sunday): ${dayOfWeek}
-- isPremium: ${dayOfWeek >= 6 ? "true" : "false"}
+    const prompt = `You are a world-class interactive educational game designer, behavioral psychologist, and master narrative writer.
+Generate an interactive, game-inspired daily discovery quest for the mobile web app LSD (Learn Something Daily).
 
-LSD teaches psychology, behavior, and thinking using vibrant, meme-style, bite-sized content. Tone: smart, punchy, surprising. Audience: curious 20-35 year olds.
+Quest Attributes:
+- Theme World (Season): "${season}"
+- Sub-category (Cluster): "${cluster}"
+- Day of Week (1-7): ${dayOfWeek}
+- isPremium: ${dayOfWeek >= 6}
+
+## CONTENT PRINCIPLES
+- Teach exactly ONE powerful concept.
+- Simple vocabulary, short sentences. Max 2 lines per paragraph. Never show walls of text.
+- Highly gamified, conversational, and wowed at first glance.
+- Optimize for curiosity, surprise, active participation, and retention.
+
+## INTERACTIVE QUEST FLOW SCHEMA
+You MUST generate exactly the following content blocks in the "contentBlocks" array in this sequence:
+1. "mission_brief" (Mission Brief) — A compelling objective label introducing the concept without explaining it yet.
+2. "prediction" (Prediction Challenge) — Ask the user to make a guess about the concept (a multiple choice question).
+3. "story" (Interactive Story) — A paragraph narrative setting up a concrete story scenario.
+4. "decision_point" (Decision Point) — A branching decision choice list (with 3-4 options) asking the user what they would do next. Provide a custom reaction text block for EACH option.
+5. "reveal" (The Reveal) — Explain the correct answer and conceptual physics of the choice. Keep it visual and punchy.
+6. "experiment" (Interactive Experiment) — A simulated experiment. Provide 3 options (e.g., comparison pricing options or decoy values) that the user can click to experience the bias.
+7. "examples" (Real-World Recognition) — 3 to 5 everyday examples.
+8. "cheat_code" (The Cheat Code) — One practical tip/action to apply.
+9. "boss_battle" (Boss Battle) — A sequence of 3-5 short multiple-choice questions testing their understanding. Include detailed explanation feedback strings for ALL correct and incorrect options.
+10. "victory" (Victory) — Celebration reinforcement.
+11. "mission" (Real World Mission) — Actionable daily challenge.
 
 Output STRICT JSON (no markdown, no code blocks):
 {
@@ -433,11 +453,85 @@ Output STRICT JSON (no markdown, no code blocks):
   "cluster": "${cluster}",
   "isPremium": ${dayOfWeek >= 6},
   "contentBlocks": [
-    { "type": "hook", "text": "Counter-intuitive opening statement that surprises the reader and makes them want to read on." },
-    { "type": "meme", "imageUrl": "https://images.unsplash.com/photo-1507537297725-24a1c029d3ca?auto=format&fit=crop&q=80&w=1000", "caption": "Funny relatable meme caption under 20 words", "explanation": "60-second plain English explanation of the psychological concept, tied to the meme." },
-    { "type": "summary", "title": "Catchy title for takeaways (add emoji)", "bulletPoints": ["4 specific, actionable or insight-rich bullet points"] },
-    { "type": "quiz", "question": "Test comprehension, not trivia. One clear correct answer.", "options": ["4 plausible options"], "correctIndex": 0, "explanation": "Short explanation of why this is correct." },
-    { "type": "share_card", "title": "Topic name", "summary": "Viral one-liner takeaway", "teaser": "CTA to share or continue learning" }
+    {
+      "type": "mission_brief",
+      "text": "Objective intro statement."
+    },
+    {
+      "type": "prediction",
+      "question": "Prediction guess question?",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctIndex": 1,
+      "explanation": "Correct option detail."
+    },
+    {
+      "type": "story",
+      "text": "Interactive scenario setup text."
+    },
+    {
+      "type": "decision_point",
+      "question": "What would you do next?",
+      "options": ["Choice A", "Choice B", "Choice C"],
+      "reactions": [
+        "Branch feedback text for choice A.",
+        "Branch feedback text for choice B.",
+        "Branch feedback text for choice C."
+      ]
+    },
+    {
+      "type": "reveal",
+      "text": "The Reveal text (max 2 lines per paragraph)."
+    },
+    {
+      "type": "experiment",
+      "title": "Interactive experiment setup",
+      "prompt": "Pick one option to see what happens...",
+      "options": ["Option 1", "Option 2", "Option 3"],
+      "explanations": ["Reaction explanation for option 1", "Reaction explanation for option 2", "Reaction explanation for option 3"]
+    },
+    {
+      "type": "examples",
+      "items": [
+        "Example 1 details",
+        "Example 2 details",
+        "Example 3 details"
+      ]
+    },
+    {
+      "type": "cheat_code",
+      "text": "Cheat code action item."
+    },
+    {
+      "type": "boss_battle",
+      "questions": [
+        {
+          "question": "Q1 text?",
+          "options": ["Opt A", "Opt B", "Opt C"],
+          "correctIndex": 0,
+          "explanations": ["Feedback A", "Feedback B", "Feedback C"]
+        },
+        {
+          "question": "Q2 text?",
+          "options": ["Opt A", "Opt B", "Opt C"],
+          "correctIndex": 1,
+          "explanations": ["Feedback A", "Feedback B", "Feedback C"]
+        },
+        {
+          "question": "Q3 text?",
+          "options": ["Opt A", "Opt B", "Opt C"],
+          "correctIndex": 2,
+          "explanations": ["Feedback A", "Feedback B", "Feedback C"]
+        }
+      ]
+    },
+    {
+      "type": "victory",
+      "text": "Celebrate and congratulate the learner."
+    },
+    {
+      "type": "mission",
+      "text": "Real-world mission action item."
+    }
   ]
 }`;
 
@@ -485,5 +579,41 @@ function getFallbackTopic(season: string, dayOfWeek: number) {
         slug: topic.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
         season,
         dayOfWeek,
+        contentBlocks: ensure12StepContent(topic.title, topic.summary, topic.emoji, topic.contentBlocks),
     };
+}
+
+// Helper to expand pre-existing 5-block schema into upgraded 12-step flow
+function ensure12StepContent(title: string, summary: string, emoji: string, blocks: any[]): any[] {
+    if (!blocks || blocks.length === 0) return [];
+    
+    // Find the base content blocks from the raw data
+    const hookBlock = blocks.find(b => b.type === "hook");
+    const memeBlock = blocks.find(b => b.type === "meme");
+    const summaryBlock = blocks.find(b => b.type === "summary");
+    const quizBlock = blocks.find(b => b.type === "quiz");
+    const shareCardBlock = blocks.find(b => b.type === "share_card");
+
+    const hookText = hookBlock?.text || "Every day is an opportunity to learn something surprising.";
+    const memeUrl = memeBlock?.imageUrl || "https://images.unsplash.com/photo-1616469829581-73993eb86b02?auto=format&fit=crop&q=80&w=800";
+    const memeCaption = memeBlock?.caption || title;
+    const explanationText = memeBlock?.explanation || summary;
+    const bullets = summaryBlock?.bulletPoints || ["Familiar patterns in daily life", "Notice these triggers as they happen"];
+    const quizQuestion = quizBlock?.question || `What is the primary driver behind ${title}?`;
+    const quizOptions = quizBlock?.options || ["Logical evaluation", "Cognitive energy conservation", "Accidental design"];
+    const quizCorrectIndex = quizBlock?.correctIndex ?? 1;
+    const quizExplanationText = quizBlock?.explanation || "The brain relies on shortcuts to conserve energy.";
+    const shareTitle = shareCardBlock?.title || title;
+    const shareSummary = shareCardBlock?.summary || summary;
+    const shareTeaser = shareCardBlock?.teaser || "Learn more on LSD.";
+
+    return [
+        { type: "hook", text: hookText },
+        { type: "meme", imageUrl: memeUrl, caption: memeCaption, explanation: explanationText },
+        { type: "reveal", text: explanationText }, // The Real Explanation
+        { type: "summary", title: "Why It Matters", bulletPoints: bullets },
+        { type: "quiz", question: quizQuestion, options: quizOptions, correctIndex: quizCorrectIndex, explanation: quizExplanationText },
+        { type: "fact", text: quizExplanationText }, // Mind-Blowing Fact
+        { type: "share_card", title: shareTitle, summary: shareSummary, teaser: shareTeaser }
+    ];
 }

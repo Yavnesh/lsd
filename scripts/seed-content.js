@@ -99,6 +99,8 @@ const RICH_FALLBACKS = {
 const SEASONS = Object.keys(RICH_FALLBACKS);
 
 async function seed() {
+    console.log("Cleaning existing topics from database...");
+    await prisma.topic.deleteMany({});
     let created = 0, skipped = 0;
 
     for (const season of SEASONS) {
@@ -124,7 +126,7 @@ async function seed() {
                             cluster: t.cluster,
                             dayOfWeek,
                             isPremium: t.isPremium || dayOfWeek >= 6,
-                            content: JSON.stringify(t.contentBlocks),
+                            content: JSON.stringify(ensure12StepContent(t.title, t.summary, t.emoji, t.contentBlocks)),
                         }
                     });
                     created++;
@@ -137,6 +139,41 @@ async function seed() {
     }
 
     console.log(`\n🎮 SEED COMPLETE: ${created} created, ${skipped} skipped`);
+}
+
+// Helper to expand pre-existing 5-block schema into upgraded 12-step flow
+function ensure12StepContent(title, summary, emoji, blocks) {
+    if (!blocks || blocks.length === 0) return [];
+    
+    // Find the base content blocks from the raw data
+    const hookBlock = blocks.find(b => b.type === "hook");
+    const memeBlock = blocks.find(b => b.type === "meme");
+    const summaryBlock = blocks.find(b => b.type === "summary");
+    const quizBlock = blocks.find(b => b.type === "quiz");
+    const shareCardBlock = blocks.find(b => b.type === "share_card");
+
+    const hookText = hookBlock?.text || "Every day is an opportunity to learn something surprising.";
+    const memeUrl = memeBlock?.imageUrl || "https://images.unsplash.com/photo-1616469829581-73993eb86b02?auto=format&fit=crop&q=80&w=800";
+    const memeCaption = memeBlock?.caption || title;
+    const explanationText = memeBlock?.explanation || summary;
+    const bullets = summaryBlock?.bulletPoints || ["Familiar patterns in daily life", "Notice these triggers as they happen"];
+    const quizQuestion = quizBlock?.question || `What is the primary driver behind ${title}?`;
+    const quizOptions = quizBlock?.options || ["Logical evaluation", "Cognitive energy conservation", "Accidental design"];
+    const quizCorrectIndex = quizBlock?.correctIndex ?? 1;
+    const quizExplanationText = quizBlock?.explanation || "The brain relies on shortcuts to conserve energy.";
+    const shareTitle = shareCardBlock?.title || title;
+    const shareSummary = shareCardBlock?.summary || summary;
+    const shareTeaser = shareCardBlock?.teaser || "Learn more on LSD.";
+
+    return [
+        { type: "hook", text: hookText },
+        { type: "meme", imageUrl: memeUrl, caption: memeCaption, explanation: explanationText },
+        { type: "reveal", text: explanationText }, // The Real Explanation
+        { type: "summary", title: "Why It Matters", bulletPoints: bullets },
+        { type: "quiz", question: quizQuestion, options: quizOptions, correctIndex: quizCorrectIndex, explanation: quizExplanationText },
+        { type: "fact", text: quizExplanationText }, // Mind-Blowing Fact
+        { type: "share_card", title: shareTitle, summary: shareSummary, teaser: shareTeaser }
+    ];
 }
 
 seed().finally(() => prisma.$disconnect());

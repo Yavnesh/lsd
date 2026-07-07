@@ -13,11 +13,11 @@ import { BottomNav } from "./BottomNav";
 
 const navItems = [
     {
-        name: "Nexus",
-        href: "/learn",
+        name: "Mind Gym",
+        href: "/quizzes",
         icon: Zap,
         emoji: "⚡",
-        desc: "Daily Quest",
+        desc: "Daily Quizzes",
         activeColor: "text-brand-primary",
         activeBg: "bg-brand-primary/15",
         glowColor: "rgba(124,77,255,0.3)",
@@ -92,7 +92,7 @@ export const Navbar = () => {
                         <div className="absolute inset-0 bg-gradient-to-r from-brand-primary/3 via-transparent to-brand-success/3 pointer-events-none" />
 
                         {/* LEFT: Logo */}
-                        <Link href={isAuthenticated ? "/learn" : "/"} className="flex items-center gap-2.5 group relative z-10 mr-3 flex-shrink-0">
+                        <Link href={isAuthenticated ? "/quizzes" : "/"} className="flex items-center gap-2.5 group relative z-10 mr-3 flex-shrink-0">
                             <motion.div
                                 whileHover={{ rotate: 15, scale: 1.1 }}
                                 transition={{ type: "spring", stiffness: 400 }}

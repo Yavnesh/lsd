@@ -12,9 +12,10 @@ import { useUserStore } from "@/store/useUserStore";
 
 interface Activity {
     id: string;
-    topic: { title: string; emoji: string };
+    topic: { title: string; emoji: string; cluster?: string };
     earnedXp: number;
     completedAt: string;
+    quizCorrect?: boolean | null;
 }
 
 const statCards = [
@@ -37,6 +38,8 @@ export default function DashboardPage() {
     const router = useRouter();
     const [activities, setActivities] = useState<Activity[]>([]);
     const [loading, setLoading] = useState(true);
+    const [userAvatar, setUserAvatar] = useState("");
+    const [unlockedClusters, setUnlockedClusters] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         if (status === "unauthenticated") router.replace("/login");
@@ -48,10 +51,22 @@ export default function DashboardPage() {
                 await syncWithDatabase();
                 try {
                     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                    const res = await fetch(`/api/user/stats?tz=${encodeURIComponent(tz)}`);
-                    if (res.ok) {
-                        const data = await res.json();
-                        setActivities(data.activities || []);
+                    const [statsRes, profileRes] = await Promise.all([
+                        fetch(`/api/user/stats?tz=${encodeURIComponent(tz)}`),
+                        fetch("/api/user/profile")
+                    ]);
+                    if (statsRes.ok) {
+                        const data = await statsRes.json();
+                        // Only show COMPLETED activities
+                        const completed = (data.activities || []).filter((a: any) => a.status === "COMPLETED");
+                        setActivities(completed);
+                        // Track which clusters are unlocked
+                        const clusters = new Set<string>(completed.map((a: any) => a.topic?.cluster || "").filter(Boolean));
+                        setUnlockedClusters(clusters);
+                    }
+                    if (profileRes.ok) {
+                        const profileData = await profileRes.json();
+                        setUserAvatar(profileData.user?.selectedAvatar || profileData.user?.defaultAvatar || "");
                     }
                 } catch (e) {
                     console.error("Failed to load user activities", e);
@@ -82,7 +97,12 @@ export default function DashboardPage() {
         streak: `${streak} days`,
         xp: xp.toLocaleString(),
         lessons: `${activities.length}`,
-        accuracy: "100%",
+        accuracy: activities.length === 0 ? "–" : (() => {
+            const withQuiz = activities.filter(a => a.quizCorrect !== null && a.quizCorrect !== undefined);
+            if (withQuiz.length === 0) return "100%";
+            const correct = withQuiz.filter(a => a.quizCorrect === true).length;
+            return `${Math.round((correct / withQuiz.length) * 100)}%`;
+        })(),
     };
 
     const shieldCount = streakShields ?? 0;
@@ -121,9 +141,15 @@ export default function DashboardPage() {
                         <div className="relative flex-shrink-0">
                             <motion.div
                                 whileHover={{ scale: 1.05, rotate: 5 }}
-                                className="w-24 h-24 rounded-3xl gradient-primary flex items-center justify-center shadow-[0_0_40px_rgba(124,77,255,0.3),0_8px_0_rgba(80,32,192,0.5)] text-5xl"
+                                className="w-24 h-24 rounded-3xl overflow-hidden shadow-[0_0_40px_rgba(124,77,255,0.3),0_8px_0_rgba(80,32,192,0.5)] border-2 border-brand-primary/30"
                             >
-                                🧠
+                                {userAvatar && userAvatar.startsWith("http") ? (
+                                    <img src={userAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full gradient-primary flex items-center justify-center text-5xl">
+                                        {userAvatar || "🧠"}
+                                    </div>
+                                )}
                             </motion.div>
                             {/* Level badge */}
                             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-brand-gold text-amber-900 font-game text-[9px] font-bold px-3 py-1 rounded-full shadow-lg whitespace-nowrap border border-amber-300/30">
@@ -164,7 +190,7 @@ export default function DashboardPage() {
                                     <div className="text-[9px] text-text-secondary uppercase tracking-wider">Streak Guard</div>
                                 </div>
                             </div>
-                            <Link href="/learn">
+                            <Link href="/quizzes">
                                 <motion.button
                                     whileHover={{ scale: 1.03 }}
                                     whileTap={{ scale: 0.97 }}
@@ -231,7 +257,7 @@ export default function DashboardPage() {
                                 <div className="text-5xl mb-4 floating">🗺️</div>
                                 <p className="font-game text-lg text-foreground mb-2">Your journal is empty</p>
                                 <p className="text-text-secondary text-sm mb-6">Complete your first quest to write your legend.</p>
-                                <Link href="/learn">
+                                <Link href="/quizzes">
                                     <button className="game-btn-primary text-sm px-6 py-3">⚡ Start First Quest</button>
                                 </Link>
                             </div>
@@ -304,7 +330,7 @@ export default function DashboardPage() {
                                     </div>
                                 </div>
 
-                                <Link href="/learn" className="block">
+                                <Link href="/quizzes" className="block">
                                     <motion.button
                                         whileHover={{ scale: 1.03 }}
                                         whileTap={{ scale: 0.97 }}
@@ -327,7 +353,9 @@ export default function DashboardPage() {
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 {collections.map((col, i) => {
-                                    const unlocked = i === 0 ? activities.length > 0 : false;
+                                    // Check if the user has completed any quest in this cluster
+                                    const clusterKey = ["Consumer Psychology", "Personality", "Decision Making", "Biases"][i] || col.label;
+                                    const unlocked = activities.length > 0 && (i === 0 || unlockedClusters.has(clusterKey));
                                     return (
                                         <motion.div
                                             key={i}

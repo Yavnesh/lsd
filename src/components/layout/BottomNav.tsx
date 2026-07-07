@@ -6,7 +6,7 @@ import { Zap, Trophy, Map, Swords } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const navItems = [
-    { name: "Nexus", href: "/learn", icon: Zap, emoji: "⚡", color: "text-brand-primary", glow: "rgba(124,77,255,0.5)" },
+    { name: "Mind Gym", href: "/quizzes", icon: Zap, emoji: "⚡", color: "text-brand-primary", glow: "rgba(124,77,255,0.5)" },
     { name: "Sanctuary", href: "/dashboard", icon: Trophy, emoji: "🏆", color: "text-brand-gold", glow: "rgba(247,201,72,0.5)" },
     { name: "Expedition", href: "/topics", icon: Map, emoji: "🗺️", color: "text-brand-forest", glow: "rgba(76,175,80,0.5)" },
     { name: "Arena", href: "/leaderboard", icon: Swords, emoji: "⚔️", color: "text-brand-error", glow: "rgba(255,107,107,0.5)" },
