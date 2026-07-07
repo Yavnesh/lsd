@@ -51,3 +51,6 @@ dev.db
 
 # Documentation
 PROJECT_OVERVIEW.md
+
+# Development Cache Fallback
+session-cache-fallback.json

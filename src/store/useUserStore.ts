@@ -199,6 +199,7 @@ export const useUserStore = create<UserState>()(
 
             syncWithDatabase: async () => {
                 try {
+                    set({ hearts: 3, heartsRefillStartedAt: null });
                     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
                     const res = await fetch(`/api/user/stats?tz=${encodeURIComponent(tz)}`);
                     if (res.ok) {

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { useUserStore } from "@/store/useUserStore";
 import { motion, AnimatePresence } from "framer-motion";
-import { Star, Trophy, Users, Zap, Search, ShieldCheck, Timer, AlertCircle, ArrowRight, BookOpen, Flame, Compass, Sparkles, Lock } from "lucide-react";
+import { Star, Trophy, Users, Zap, Search, ShieldCheck, Timer, AlertCircle, ArrowRight, BookOpen, Flame, Compass, Sparkles, Lock, Crown, Heart } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -276,27 +276,18 @@ export default function QuizHubPage() {
                         <div className="absolute inset-0 bg-brand-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                         <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary block">Hearts</span>
                         
-                        <div className="flex justify-center gap-2.5 mt-2.5">
+                        <div className="flex justify-center gap-3 mt-3">
                             {[0, 1, 2].map((i) => {
                                 const filled = i < hearts;
                                 return (
-                                    <div 
+                                    <Heart 
                                         key={i} 
-                                        className={`relative w-7 h-7 overflow-hidden transition-all duration-300 ${filled ? 'opacity-100 filter drop-shadow-[0_2px_8px_rgba(244,63,94,0.4)]' : 'opacity-25 grayscale'}`}
-                                    >
-                                        <img 
-                                            src="/spritesheet1.png" 
-                                            alt="Heart" 
-                                            className="absolute max-w-none" 
-                                            style={{
-                                                width: '300%',
-                                                height: '300%',
-                                                left: '0%',
-                                                top: '0%',
-                                                objectFit: 'contain'
-                                            }}
-                                        />
-                                    </div>
+                                        className={`w-7 h-7 transition-all duration-300 ${
+                                            filled 
+                                                ? 'text-[#ff4b4b] fill-[#ff4b4b] filter drop-shadow-[0_2px_8px_rgba(255,75,75,0.6)] animate-pulse' 
+                                                : 'text-white/10 fill-none stroke-white/20'
+                                        }`}
+                                    />
                                 );
                             })}
                         </div>
@@ -308,29 +299,50 @@ export default function QuizHubPage() {
 
                     <motion.div 
                         whileHover={{ y: -4 }} 
-                        className="game-card p-5 rounded-3xl border border-brand-gold/20 bg-gradient-to-br from-brand-gold/10 via-card/60 to-card shadow-[0_8px_30px_rgba(247,201,72,0.05)] text-center relative overflow-hidden group"
+                        className="game-card p-5 rounded-3xl border border-brand-gold/20 bg-gradient-to-br from-brand-gold/10 via-card/60 to-card shadow-[0_8px_30px_rgba(247,201,72,0.05)] text-center relative overflow-hidden group flex flex-col justify-between items-center"
                     >
                         <div className="absolute inset-0 bg-brand-gold/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-brand-gold flex items-center justify-center gap-1"><Flame className="w-3.5 h-3.5 fill-brand-gold stroke-brand-gold animate-pulse" /> Quest Streak</span>
-                        <span className="font-game text-2xl mt-2 text-foreground block filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]">{streak} Days</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-brand-gold block">Quest Streak</span>
+                        
+                        <div className="flex items-center gap-2 mt-3">
+                            <Flame className="w-7 h-7 text-brand-gold fill-brand-gold filter drop-shadow-[0_2px_8px_rgba(247,201,72,0.6)]" />
+                            <span className="font-game text-2xl text-foreground filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]">{streak} Days</span>
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-text-secondary mt-2.5 block font-mono">
+                            STREAK ACTIVE
+                        </span>
                     </motion.div>
 
                     <motion.div 
                         whileHover={{ y: -4 }} 
-                        className="game-card p-5 rounded-3xl border border-brand-success/20 bg-gradient-to-br from-brand-success/10 via-card/60 to-card shadow-[0_8px_30px_rgba(76,175,80,0.05)] text-center relative overflow-hidden group"
+                        className="game-card p-5 rounded-3xl border border-brand-success/20 bg-gradient-to-br from-brand-success/10 via-card/60 to-card shadow-[0_8px_30px_rgba(76,175,80,0.05)] text-center relative overflow-hidden group flex flex-col justify-between items-center"
                     >
                         <div className="absolute inset-0 bg-brand-success/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                         <span className="text-[10px] font-black uppercase tracking-widest text-brand-success block">Rank Level</span>
-                        <span className="font-game text-base mt-2 text-foreground block truncate max-w-full">{level}</span>
+                        
+                        <div className="flex items-center gap-2 mt-3">
+                            <Crown className="w-7 h-7 text-brand-success fill-brand-success filter drop-shadow-[0_2px_8px_rgba(34,197,94,0.6)]" />
+                            <span className="font-game text-base text-foreground truncate max-w-[120px]">{level}</span>
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-text-secondary mt-2.5 block font-mono">
+                            TIER TACTICAL
+                        </span>
                     </motion.div>
 
                     <motion.div 
                         whileHover={{ y: -4 }} 
-                        className="game-card p-5 rounded-3xl border border-brand-orange/20 bg-gradient-to-br from-brand-orange/10 via-card/60 to-card shadow-[0_8px_30px_rgba(255,159,67,0.05)] text-center relative overflow-hidden group"
+                        className="game-card p-5 rounded-3xl border border-brand-orange/20 bg-gradient-to-br from-brand-orange/10 via-card/60 to-card shadow-[0_8px_30px_rgba(255,159,67,0.05)] text-center relative overflow-hidden group flex flex-col justify-between items-center"
                     >
                         <div className="absolute inset-0 bg-brand-orange/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                         <span className="text-[10px] font-black uppercase tracking-widest text-brand-orange block">XP Volume</span>
-                        <span className="font-game text-2xl mt-2 text-brand-gold block filter drop-shadow-[0_0_8px_rgba(247,201,72,0.3)]">{xp} XP</span>
+                        
+                        <div className="flex items-center gap-2 mt-3">
+                            <Zap className="w-7 h-7 text-brand-orange fill-brand-orange filter drop-shadow-[0_2px_8px_rgba(255,159,67,0.6)]" />
+                            <span className="font-game text-2xl text-foreground filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]">{xp} XP</span>
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-text-secondary mt-2.5 block font-mono">
+                            TOTAL SCORE
+                        </span>
                     </motion.div>
                 </div>
 

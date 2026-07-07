@@ -142,6 +142,7 @@ function LearnQuestContent() {
     const [pvpGhost, setPvpGhost] = useState<any>(null);
     const [pvpMatchId, setPvpMatchId] = useState<string>("");
     const [pvpAnswers, setPvpAnswers] = useState<any[]>([]);
+    const pvpAnswersRef = useRef<any[]>([]);
     const [pvpCompleteResult, setPvpCompleteResult] = useState<any | null>(null);
 
     // Timer states
@@ -186,6 +187,8 @@ function LearnQuestContent() {
         setQuestionTimeLeft(15);
         setSecondsElapsed(0);
         setTimerActive(true);
+        setSelectedOption(null);
+        setIsCorrectAnswer(null);
     };
 
     const stopTimer = () => {
@@ -227,6 +230,11 @@ function LearnQuestContent() {
     useEffect(() => {
         async function loadData() {
             try {
+                pvpAnswersRef.current = [];
+                setPvpAnswers([]);
+                setSelectedOption(null);
+                setIsCorrectAnswer(null);
+                setIsAnswerChecked(false);
                 const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
                 let selectedTopic: any = null;
 
@@ -287,6 +295,13 @@ function LearnQuestContent() {
                             setTopic({ ...selectedTopic });
                         }
                     }
+
+                    // Start Redis game session
+                    await fetch("/api/game/start", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ topicId: selectedTopic.id, isPvp })
+                    });
                 }
             } catch (err) {
                 console.error("Failed to load daily learning data", err);
@@ -296,12 +311,41 @@ function LearnQuestContent() {
         }
         loadData();
     }, [topicSlug, isPvp]);
+
     const activeBlocks = topic?.content || [];
+
+    // Trigger confetti on successful quest completion
+    useEffect(() => {
+        if (topic && activeBlocks.length > 0 && currentStage >= activeBlocks.length) {
+            const isVictory = !isPvp || (pvpCompleteResult && (pvpCompleteResult.status === "VICTORY" || pvpCompleteResult.status === "DRAW"));
+            if (isVictory) {
+                const duration = 2.5 * 1000;
+                const end = Date.now() + duration;
+                (function frame() {
+                    confetti({
+                        particleCount: 4,
+                        angle: 60,
+                        spread: 55,
+                        origin: { x: 0.1, y: 0.8 }
+                    });
+                    confetti({
+                        particleCount: 4,
+                        angle: 120,
+                        spread: 55,
+                        origin: { x: 0.9, y: 0.8 }
+                    });
+                    if (Date.now() < end) {
+                        requestAnimationFrame(frame);
+                    }
+                }());
+            }
+        }
+    }, [currentStage, activeBlocks.length, isPvp, pvpCompleteResult, topic]);
     const showPrediction = topic?.prediction && !isPvp && !predictionVoted;
     const currentBlock = activeBlocks[currentStage];
     
     // Quiz matching logic supporting Boss Battles as well
-    const isQuizQuestion = currentBlock && (currentBlock.type === "quiz" || currentBlock.type === "mini_challenge" || currentBlock.type === "boss_battle");
+    const isQuizQuestion = currentBlock && (currentBlock.type === "quiz" || (currentBlock.type as string) === "mini_challenge" || currentBlock.type === "boss_battle");
 
     // Dynamic active question payload
     const activeQuestion = currentBlock?.type === "boss_battle"
@@ -327,6 +371,18 @@ function LearnQuestContent() {
 
         setIsCorrectAnswer(correct);
 
+        if (isPvp) {
+            const answerObj = {
+                questionId: activeQuestion?.question || `q-${currentStage}-${bossQuestionIndex}`,
+                selectedIndex: activeOption || 0,
+                timeTaken: secondsElapsed,
+                isCorrect: correct
+            };
+            console.log("CLIENT PUSH ANSWER (SYNC):", answerObj);
+            pvpAnswersRef.current = [...pvpAnswersRef.current, answerObj];
+            setPvpAnswers(pvpAnswersRef.current);
+        }
+
         if (!correct) {
             loseHeart();
         } else {
@@ -343,42 +399,42 @@ function LearnQuestContent() {
             await addXp(Math.round(20 * multiplier), topic?.id, true, activeOption || 0);
         }
 
-        if (isPvp) {
-            const answerObj = {
-                questionId: activeQuestion?.question || `q-${currentStage}-${bossQuestionIndex}`,
-                selectedIndex: activeOption || 0,
-                timeTaken: secondsElapsed,
-                isCorrect: correct
-            };
-            console.log("CLIENT PUSH ANSWER:", answerObj);
-            setPvpAnswers(prev => [...prev, answerObj]);
+        // Update Redis game session cache
+        try {
+            fetch("/api/game/answer", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    questionId: activeQuestion?.question || `q-${currentStage}-${bossQuestionIndex}`,
+                    selectedIndex: activeOption || 0,
+                    timeTaken: secondsElapsed,
+                    isCorrect: correct,
+                    xpGained: correct ? Math.round(20 * (secondsElapsed <= 3 ? 2.0 : secondsElapsed <= 8 ? 1.5 : 1.0)) : 0
+                })
+            });
+        } catch (e) {
+            console.error("Failed to cache answer on server:", e);
         }
     };
-
     const handleContinue = async () => {
         // If inside a boss battle and has more questions, advance boss battle question index instead
         if (currentBlock?.type === "boss_battle" && bossQuestionIndex + 1 < (currentBlock.questions?.length || 0)) {
             setBossQuestionIndex(prev => prev + 1);
-            setSelectedOption(null);
             setIsAnswerChecked(false);
-            setIsCorrectAnswer(null);
             return;
         }
 
-        setSelectedOption(null);
-        setIsAnswerChecked(false);
-        setIsCorrectAnswer(null);
-        setUnlockedBulletPoints([]);
-        setMemeDecoded(false);
-        setReactionSelected(null);
-        setPollChoice(null);
-        setBossQuestionIndex(0);
-
         if (currentStage + 1 < activeBlocks.length) {
+            setIsAnswerChecked(false);
+            setUnlockedBulletPoints([]);
+            setMemeDecoded(false);
+            setReactionSelected(null);
+            setPollChoice(null);
+            setBossQuestionIndex(0);
             setCurrentStage(prev => prev + 1);
         } else {
             if (isPvp) {
-                console.log("CLIENT SUBMITTING PVP ANSWERS:", pvpAnswers);
+                console.log("CLIENT SUBMITTING PVP ANSWERS:", pvpAnswersRef.current);
                 try {
                     const res = await fetch("/api/pvp/submit", {
                         method: "POST",
@@ -389,7 +445,7 @@ function LearnQuestContent() {
                             opponentTime: pvpGhost?.totalTime || 0,
                             opponentRating: pvpOpponent?.rating || 1000,
                             opponentName: pvpOpponent?.name || "Opponent",
-                            answers: pvpAnswers
+                            answers: pvpAnswersRef.current
                         })
                     });
                     if (res.ok) {
@@ -400,11 +456,19 @@ function LearnQuestContent() {
                 } catch (e) {
                     console.error(e);
                 }
+            } else {
+                try {
+                    await fetch("/api/game/complete", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" }
+                    });
+                } catch (e) {
+                    console.error("Failed to call complete route:", e);
+                }
             }
             setCurrentStage(prev => prev + 1);
         }
     };
-
     const handleRestoreHearts = () => {
         resetHearts();
     };
@@ -569,7 +633,7 @@ function LearnQuestContent() {
                             className="w-full space-y-6"
                         >
                             {/* A. MISSION BRIEF */}
-                            {currentBlock.type === "mission_brief" && (
+                            {(currentBlock.type as string) === "mission_brief" && (
                                 <div className="space-y-6 text-center">
                                     <div className="text-5xl">📜</div>
                                     <h2 className="font-game text-2xl">Mission Objective</h2>
@@ -786,8 +850,14 @@ function LearnQuestContent() {
                                         </>
                                     ) : pvpCompleteResult.status === "DEFEAT" ? (
                                         <>
-                                            <AlertTriangle className="w-20 h-20 text-brand-error mx-auto animate-pulse" />
-                                            <h1 className="font-game text-3xl text-brand-error">Defeat!</h1>
+                                            <motion.div 
+                                                animate={{ y: [0, -10, 0] }}
+                                                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                                                className="w-20 h-20 bg-brand-error/10 border border-brand-error/20 rounded-full flex items-center justify-center text-4xl mx-auto shadow-[0_0_20px_rgba(239,68,68,0.2)]"
+                                            >
+                                                💀
+                                            </motion.div>
+                                            <h1 className="font-game text-3xl text-brand-error tracking-wide uppercase">Match Lost</h1>
                                         </>
                                     ) : (
                                         <>
@@ -882,9 +952,9 @@ function LearnQuestContent() {
                                                     <div>
                                                         <h4 className="font-bold text-base">{isCorrectAnswer ? "Awesome job!" : "Incorrect"}</h4>
                                                         <p className="text-xs opacity-80 mt-1">
-                                                            {currentBlock.type === "boss_battle"
-                                                                ? activeQuestion?.explanations?.[selectedOption || 0] || currentBlock.explanation
-                                                                : currentBlock.explanation}
+                                                            {currentBlock?.type === "boss_battle"
+                                                                ? activeQuestion?.explanations?.[selectedOption || 0] || currentBlock?.explanation
+                                                                : currentBlock?.explanation}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -922,7 +992,7 @@ function LearnQuestContent() {
 
             {/* PvP Result Slide-In Drawer */}
             <AnimatePresence>
-                {isPvp && isAnswerChecked && (
+                {isPvp && isAnswerChecked && currentStage < activeBlocks.length && (
                     <motion.div
                         key="pvp-result-drawer"
                         initial={{ y: "100%" }}
@@ -945,9 +1015,9 @@ function LearnQuestContent() {
                                         {isCorrectAnswer ? "Victory is Near!" : "Ouch! Strike!"}
                                     </h4>
                                     <p className="text-sm opacity-90 mt-1 md:mt-2 max-w-2xl leading-relaxed text-foreground/90 font-medium">
-                                        {currentBlock.type === "boss_battle"
-                                            ? activeQuestion?.explanations?.[selectedOption || 0] || currentBlock.explanation
-                                            : currentBlock.explanation}
+                                        {currentBlock?.type === "boss_battle"
+                                            ? activeQuestion?.explanations?.[selectedOption || 0] || currentBlock?.explanation
+                                            : currentBlock?.explanation}
                                     </p>
                                 </div>
                             </div>

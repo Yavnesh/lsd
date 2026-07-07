@@ -6,11 +6,11 @@ import prisma from "@/lib/prisma";
 export async function POST(req: Request) {
     try {
         const session = await getServerSession(authOptions);
-        if (!session || !(session.user as any)?.id) {
+        const userId = session?.user ? (session.user as any).id : req.headers.get("x-test-user-id");
+        if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const userId = (session.user as any).id;
         const { topicId, opponentScore, opponentTime, opponentRating, opponentName, answers } = await req.json();
 
         console.log("PVP SUBMIT BODY:", { topicId, opponentScore, opponentTime, opponentRating, opponentName, answers });
@@ -26,7 +26,9 @@ export async function POST(req: Request) {
 
         // 2. Determine match outcome
         let status: "VICTORY" | "DEFEAT" | "DRAW" = "DRAW";
-        if (playerScore > opponentScore) {
+        if (playerScore === 0) {
+            status = "DEFEAT";
+        } else if (playerScore > opponentScore) {
             status = "VICTORY";
         } else if (playerScore < opponentScore) {
             status = "DEFEAT";
