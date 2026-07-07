@@ -267,14 +267,10 @@ function LearnQuestContent() {
 
                     setTopic(selectedTopic);
 
-                    // Check if already completed
-                    const statsRes = await fetch(`/api/user/stats?tz=${encodeURIComponent(tz)}`);
-                    if (statsRes.ok) {
-                        const statsData = await statsRes.json();
-                        const completed = statsData.activities?.filter((a: any) => a.status === "COMPLETED") || [];
-                        if (completed.some((a: any) => a.topicId === selectedTopic.id)) {
-                            setIsAlreadyCompleted(true);
-                        }
+                    // Check if already completed using cached completedTopicIds in Zustand
+                    const storeState = useUserStore.getState();
+                    if (storeState.completedTopicIds.includes(selectedTopic.id)) {
+                        setIsAlreadyCompleted(true);
                     }
 
                     if (isPvp) {

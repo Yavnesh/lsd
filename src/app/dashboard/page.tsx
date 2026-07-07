@@ -48,7 +48,6 @@ export default function DashboardPage() {
     useEffect(() => {
         async function loadUserStats() {
             if (status === "authenticated") {
-                await syncWithDatabase();
                 try {
                     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
                     const [statsRes, profileRes] = await Promise.all([
@@ -57,10 +56,16 @@ export default function DashboardPage() {
                     ]);
                     if (statsRes.ok) {
                         const data = await statsRes.json();
-                        // Only show COMPLETED activities
+                        // Sync Zustand store stats directly from response
+                        useUserStore.setState({
+                            xp: data.stats.xp,
+                            streak: data.stats.streak,
+                            level: data.stats.level,
+                            streakShields: data.stats.streakShields
+                        });
+
                         const completed = (data.activities || []).filter((a: any) => a.status === "COMPLETED");
                         setActivities(completed);
-                        // Track which clusters are unlocked
                         const clusters = new Set<string>(completed.map((a: any) => a.topic?.cluster || "").filter(Boolean));
                         setUnlockedClusters(clusters);
                     }
@@ -76,7 +81,7 @@ export default function DashboardPage() {
             }
         }
         loadUserStats();
-    }, [status, syncWithDatabase]);
+    }, [status]);
 
     if (status !== "authenticated") return null;
 

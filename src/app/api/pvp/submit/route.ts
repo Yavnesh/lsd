@@ -109,6 +109,36 @@ export async function POST(req: Request) {
             }
         });
 
+        // 8. Create UserActivity record to mark the topic as completed
+        try {
+            await prisma.userActivity.upsert({
+                where: {
+                    userId_topicId: {
+                        userId,
+                        topicId
+                    }
+                },
+                update: {
+                    status: "COMPLETED",
+                    earnedXp: playerScore * 15 + (status === "VICTORY" ? 50 : 10),
+                    quizCorrect: playerScore > 0,
+                    lastAttemptedAt: new Date(),
+                    completedAt: new Date()
+                },
+                create: {
+                    userId,
+                    topicId,
+                    status: "COMPLETED",
+                    earnedXp: playerScore * 15 + (status === "VICTORY" ? 50 : 10),
+                    quizCorrect: playerScore > 0,
+                    lastAttemptedAt: new Date(),
+                    completedAt: new Date()
+                }
+            });
+        } catch (e) {
+            console.error("Failed to record UserActivity in PvP:", e);
+        }
+
         return NextResponse.json({
             success: true,
             status,

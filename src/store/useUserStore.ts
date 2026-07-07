@@ -23,7 +23,8 @@ interface UserState {
     login: (name: string, email: string, avatar: string, suggestedAvatars: string[]) => void;
     logout: () => void;
     checkLevelUp: () => void;
-    setAvatar: (avatarUrl: string) => void;
+    completedTopicIds: string[];
+    setCompletedTopicIds: (ids: string[]) => void;
     syncWithDatabase: () => Promise<void>;
 }
 
@@ -51,6 +52,7 @@ export const useUserStore = create<UserState>()(
             hearts: 3,
             heartsRefillStartedAt: null,
             activeMultiplier: 1,
+            completedTopicIds: [],
 
             loseHeart: () => set((state) => {
                 const newHearts = Math.max(0, state.hearts - 1);
@@ -169,7 +171,8 @@ export const useUserStore = create<UserState>()(
                 userEmail: '',
                 userAvatar: 'G',
                 suggestedAvatars: [],
-                streakShields: 1
+                streakShields: 1,
+                completedTopicIds: []
             }),
 
             checkLevelUp: () => {
@@ -181,6 +184,8 @@ export const useUserStore = create<UserState>()(
                     set({ level: newLevel });
                 }
             },
+
+            setCompletedTopicIds: (ids) => set({ completedTopicIds: ids }),
 
             setAvatar: async (avatarUrl) => {
                 set({ userAvatar: avatarUrl });
@@ -204,11 +209,14 @@ export const useUserStore = create<UserState>()(
                     const res = await fetch(`/api/user/stats?tz=${encodeURIComponent(tz)}`);
                     if (res.ok) {
                         const data = await res.json();
+                        const completed = data.activities?.filter((a: any) => a.status === "COMPLETED") || [];
+                        const completedIds = completed.map((a: any) => a.topicId);
                         set({
                             xp: data.stats.xp,
                             streak: data.stats.streak,
                             level: data.stats.level,
-                            streakShields: data.stats.streakShields
+                            streakShields: data.stats.streakShields,
+                            completedTopicIds: completedIds
                         });
                     }
                 } catch (e) {
@@ -230,7 +238,8 @@ export const useUserStore = create<UserState>()(
                 streakShields: state.streakShields,
                 hearts: state.hearts,
                 heartsRefillStartedAt: state.heartsRefillStartedAt,
-                activeMultiplier: state.activeMultiplier
+                activeMultiplier: state.activeMultiplier,
+                completedTopicIds: state.completedTopicIds
             }),
         }
     )
