@@ -25,6 +25,7 @@ interface UserState {
     checkLevelUp: () => void;
     completedTopicIds: string[];
     setCompletedTopicIds: (ids: string[]) => void;
+    setAvatar: (avatarUrl: string) => void;
     syncWithDatabase: () => Promise<void>;
 }
 
