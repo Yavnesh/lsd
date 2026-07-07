@@ -48,28 +48,45 @@ export const authOptions: NextAuthOptions = {
     secret: process.env.NEXTAUTH_SECRET || "super-secret-key-for-development-lsd",
     callbacks: {
         async session({ session, token }) {
-            if (session.user && token.sub) {
-                const dbUser = await prisma.user.findUnique({
-                    where: { id: token.sub! },
-                    include: { stat: true }
-                });
-                if (dbUser) {
-                    (session.user as any).id = dbUser.id;
-                    (session.user as any).xp = dbUser.stat?.xp || 0;
-                    (session.user as any).streak = dbUser.stat?.streak || 0;
-                    (session.user as any).level = dbUser.stat?.level || "Curious Mind";
-                    (session.user as any).defaultAvatar = dbUser.defaultAvatar;
-                    (session.user as any).suggestedAvatars = dbUser.suggestedAvatars ? JSON.parse(dbUser.suggestedAvatars) : [];
-                    (session.user as any).role = dbUser.role;
-                    (session.user as any).isPremium = dbUser.isPremium;
-                    (session.user as any).selectedAvatar = dbUser.selectedAvatar || dbUser.defaultAvatar;
-                }
+            if (session.user && token) {
+                (session.user as any).id = token.sub;
+                (session.user as any).xp = token.xp || 0;
+                (session.user as any).streak = token.streak || 0;
+                (session.user as any).level = token.level || "Curious Mind";
+                (session.user as any).defaultAvatar = token.defaultAvatar;
+                (session.user as any).suggestedAvatars = token.suggestedAvatars || [];
+                (session.user as any).role = token.role;
+                (session.user as any).isPremium = token.isPremium;
+                (session.user as any).selectedAvatar = token.selectedAvatar;
             }
             return session;
         },
-        async jwt({ token, user }) {
+        async jwt({ token, user, trigger, session }) {
+            // Initial login: query DB once and cache properties inside encrypted JWT cookie
             if (user) {
                 token.sub = user.id;
+                const dbUser = await prisma.user.findUnique({
+                    where: { id: user.id },
+                    include: { stat: true }
+                });
+                if (dbUser) {
+                    token.xp = dbUser.stat?.xp || 0;
+                    token.streak = dbUser.stat?.streak || 0;
+                    token.level = dbUser.stat?.level || "Curious Mind";
+                    token.defaultAvatar = dbUser.defaultAvatar;
+                    token.suggestedAvatars = dbUser.suggestedAvatars ? JSON.parse(dbUser.suggestedAvatars) : [];
+                    token.role = dbUser.role;
+                    token.isPremium = dbUser.isPremium;
+                    token.selectedAvatar = dbUser.selectedAvatar || dbUser.defaultAvatar;
+                }
+            } 
+            // Handle dynamically triggered updates to session values
+            else if (trigger === "update" && session) {
+                if (session.xp !== undefined) token.xp = session.xp;
+                if (session.streak !== undefined) token.streak = session.streak;
+                if (session.level !== undefined) token.level = session.level;
+                if (session.selectedAvatar !== undefined) token.selectedAvatar = session.selectedAvatar;
+                if (session.isPremium !== undefined) token.isPremium = session.isPremium;
             }
             return token;
         }

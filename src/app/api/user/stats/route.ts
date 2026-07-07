@@ -21,7 +21,27 @@ export async function GET(req: NextRequest) {
 
         const activities = await prisma.userActivity.findMany({
             where: { userId },
-            include: { topic: true },
+            select: {
+                id: true,
+                userId: true,
+                topicId: true,
+                status: true,
+                earnedXp: true,
+                selectedOptionIndex: true,
+                quizCorrect: true,
+                lastAttemptedAt: true,
+                completedAt: true,
+                topic: {
+                    select: {
+                        id: true,
+                        title: true,
+                        slug: true,
+                        emoji: true,
+                        cluster: true,
+                        season: true
+                    }
+                }
+            },
             orderBy: { lastAttemptedAt: "desc" }
         });
 
@@ -44,8 +64,10 @@ export async function GET(req: NextRequest) {
 
         const ratingHistory = await prisma.userRatingHistory.findMany({
             where: { userId },
-            orderBy: { recordedAt: "asc" }
+            orderBy: { recordedAt: "desc" },
+            take: 20
         });
+        ratingHistory.reverse();
 
         return NextResponse.json({
             stats: userStats || { xp: 0, streak: 0, level: "Curious Mind", streakShields: 1, globalRating: 1000, peakRating: 1000 },

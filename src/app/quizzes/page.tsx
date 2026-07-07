@@ -87,12 +87,14 @@ export default function QuizHubPage() {
     const { xp, streak, hearts, level, heartsRefillStartedAt, refillHeartsIfNeeded, syncWithDatabase } = useUserStore();
     const [heartCountdown, setHeartCountdown] = useState<string>("");
     
+    const cachedCompletedIds = useUserStore(state => state.completedTopicIds);
     const [topics, setTopics] = useState<Topic[]>([]);
-    const [completedTopicIds, setCompletedTopicIds] = useState<string[]>([]);
+    const [completedTopicIds, setCompletedTopicIds] = useState<string[]>(cachedCompletedIds || []);
     const [todayTopic, setTodayTopic] = useState<Topic | null>(null);
     const [isTodayCompleted, setIsTodayCompleted] = useState<boolean>(false);
     
     const [loading, setLoading] = useState(true);
+    const [visibleCount, setVisibleCount] = useState(20);
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedSeason, setSelectedSeason] = useState<string>("All");
     const [favorites, setFavorites] = useState<string[]>([]);
@@ -159,16 +161,23 @@ export default function QuizHubPage() {
     useEffect(() => {
         async function loadData() {
             try {
-                await syncWithDatabase();
-                
                 const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
                 const todayKey = new Date().toLocaleDateString("en-CA", { timeZone: tz });
 
-                // 1. Fetch user activities to filter completed quizzes
+                // 1. Fetch user activities to filter completed quizzes and sync stats
                 const statsRes = await fetch(`/api/user/stats?tz=${encodeURIComponent(tz)}`);
                 let doneIds: string[] = [];
                 if (statsRes.ok) {
                     const statsData = await statsRes.json();
+                    
+                    // Sync Zustand store stats directly from response
+                    useUserStore.setState({
+                        xp: statsData.stats.xp,
+                        streak: statsData.stats.streak,
+                        level: statsData.stats.level,
+                        streakShields: statsData.stats.streakShields
+                    });
+
                     const completed = statsData.activities?.filter((a: any) => a.status === "COMPLETED") || [];
                     doneIds = completed.map((a: any) => a.topicId);
                     setCompletedTopicIds(doneIds);
@@ -472,11 +481,23 @@ export default function QuizHubPage() {
                             <p className="font-medium text-sm">No new operations available. You have conquered all quizzes in this world!</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {normalTopics.map((topic) => (
-                                <DeckCard key={topic.id} topic={topic} isFavorite={false} onToggleFavorite={toggleFavorite} />
-                            ))}
-                        </div>
+                        <>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {normalTopics.slice(0, visibleCount).map((topic) => (
+                                    <DeckCard key={topic.id} topic={topic} isFavorite={false} onToggleFavorite={toggleFavorite} />
+                                ))}
+                            </div>
+                            {normalTopics.length > visibleCount && (
+                                <div className="flex justify-center mt-8">
+                                    <button 
+                                        onClick={() => setVisibleCount(prev => prev + 20)}
+                                        className="px-8 py-3 bg-brand-primary text-white font-game text-sm uppercase tracking-wider rounded-2xl cursor-pointer hover:scale-105 active:scale-95 transition-all shadow-[0_5px_15px_rgba(124,77,255,0.4)]"
+                                    >
+                                        Load More Operations
+                                    </button>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
 
