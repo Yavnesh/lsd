@@ -47,7 +47,7 @@ export default function Home() {
 
     useEffect(() => {
         if (status === "authenticated") {
-            router.push("/learn");
+            router.push("/quizzes");
         }
     }, [status, router]);
 
@@ -222,7 +222,7 @@ export default function Home() {
                                         ⚡ Start for Free
                                     </motion.button>
                                 </a>
-                                <a href="/learn">
+                                <a href="/quizzes">
                                     <motion.button
                                         whileHover={{ scale: 1.05 }}
                                         whileTap={{ scale: 0.95 }}

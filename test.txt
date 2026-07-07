@@ -1,0 +1,311 @@
+ltx folder ke ander wali
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base-runtime
+    ports:
+      - "8000:8000"
+    depends_on:
+      - prometheus # Changed from ltx-prometheus to prometheus
+      - postgres
+      - celery_worker
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://user:password@postgres/db
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - LTX_MODEL_PATH=Lightricks/LTX-Video
+      - PROMETHEUS_URL=http://prometheus:9090
+    networks:
+      - ltx-network
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base-runtime
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities:
+                - gpu
+    networks:
+      - ltx-network
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://user:password@postgres/db
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - LTX_MODEL_PATH=Lightricks/LTX-Video
+      - PROMETHEUS_URL=http://prometheus:9090
+
+  prometheus:
+    image: prom/prometheus:v2.50.1
+    ports:
+      - "19091:9090" # Changed port mapping as discussed
+    volumes:
+      - ./prometheus:/etc/prometheus
+    networks:
+      - ltx-network
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+
+  postgres:
+    image: postgres:14
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    networks:
+      - ltx-network
+    environment:
+      POSTGRES_DB: db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+
+  redis:
+    image: redis:7
+    networks:
+      - ltx-network
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base-runtime
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - ltx-network
+    command: celery -A app.worker.celery worker --loglevel=info
+
+  # scheduler: # Commented out as per previous instructions or if not needed
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #     target: base-runtime
+  #   networks:
+  #     - ltx-network
+  #   environment:
+  #     - ENVIRONMENT=production # Changed from local
+  #   command: python app/scheduler.py # Or the correct command for your scheduler script
+
+volumes:
+  postgres_data:
+
+networks:
+  ltx-network:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ltx folder ke bhar wali
+
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    container_name: ltx-api
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=local
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ltx_db
+      - REDIS_URL=redis://redis:6379/0
+      - STORAGE_PROVIDER_TYPE=minio
+      - STORAGE_ENDPOINT_URL=http://minio:9000
+      - STORAGE_ACCESS_KEY=minioadmin
+      - STORAGE_SECRET_KEY=minioadmin
+      - STORAGE_BUCKET_NAME=ltx-videos
+      - GENERATOR_TYPE=ltx
+      - LTX_MODEL_PATH=Lightricks/LTX-Video
+      - ENABLE_OTEL=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      target: worker
+    container_name: ltx-worker
+    environment:
+      - ENVIRONMENT=local
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ltx_db
+      - REDIS_URL=redis://redis:6379/0
+      - STORAGE_PROVIDER_TYPE=minio
+      - STORAGE_ENDPOINT_URL=http://minio:9000
+      - STORAGE_ACCESS_KEY=minioadmin
+      - STORAGE_SECRET_KEY=minioadmin
+      - STORAGE_BUCKET_NAME=ltx-videos
+      - GENERATOR_TYPE=ltx
+      - LTX_MODEL_PATH=Lightricks/LTX-Video
+      - ENABLE_OTEL=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities:
+                - gpu
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  scheduler:
+    build:
+      context: .
+      target: scheduler
+    container_name: ltx-scheduler
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ltx_db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: ltx-postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=ltx_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: ltx-redis
+    command: redis-server --save 60 1 --loglevel warning --requirepass redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: ltx-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ltx-prometheus
+    ports:
+      - "19091:9090" # Changed port to avoid conflict
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - api
+      - worker
+      - scheduler
+      - postgres
+      - redis
+      - minio
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: ltx-jaeger
+    ports:
+      - "16686:16686" # UI
+      - "14317:14317" # gRPC collector
+      - "14268:14268" # HTTP collector
+      - "4317:4317" # OTLP gRPC collector
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:

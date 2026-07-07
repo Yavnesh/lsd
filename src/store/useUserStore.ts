@@ -11,6 +11,13 @@ interface UserState {
     userAvatar: string;
     suggestedAvatars: string[];
     streakShields: number;
+    hearts: number;
+    heartsRefillStartedAt: string | null;
+    activeMultiplier: number;
+    loseHeart: () => void;
+    resetHearts: () => void;
+    refillHeartsIfNeeded: () => void;
+    setMultiplier: (multiplier: number) => void;
     addXp: (amount: number, topicId?: string, quizCorrect?: boolean, selectedOptionIndex?: number, incrementStreak?: boolean) => Promise<any>;
     incrementStreak: () => Promise<void>;
     login: (name: string, email: string, avatar: string, suggestedAvatars: string[]) => void;
@@ -41,6 +48,39 @@ export const useUserStore = create<UserState>()(
             userAvatar: 'G',
             suggestedAvatars: [],
             streakShields: 1,
+            hearts: 3,
+            heartsRefillStartedAt: null,
+            activeMultiplier: 1,
+
+            loseHeart: () => set((state) => {
+                const newHearts = Math.max(0, state.hearts - 1);
+                const refillStarted = newHearts < 3 && !state.heartsRefillStartedAt 
+                    ? new Date().toISOString() 
+                    : state.heartsRefillStartedAt;
+                return { 
+                    hearts: newHearts,
+                    heartsRefillStartedAt: refillStarted
+                };
+            }),
+            resetHearts: () => set({ hearts: 3, heartsRefillStartedAt: null }),
+            refillHeartsIfNeeded: () => set((state) => {
+                if (state.heartsRefillStartedAt) {
+                    const elapsed = Date.now() - new Date(state.heartsRefillStartedAt).getTime();
+                    const hoursElapsed = Math.floor(elapsed / (60 * 60 * 1000));
+                    if (hoursElapsed > 0) {
+                        const newHearts = Math.min(3, state.hearts + hoursElapsed);
+                        const nextRefill = newHearts === 3 
+                            ? null 
+                            : new Date(new Date(state.heartsRefillStartedAt).getTime() + hoursElapsed * 60 * 60 * 1000).toISOString();
+                        return {
+                            hearts: newHearts,
+                            heartsRefillStartedAt: nextRefill
+                        };
+                    }
+                }
+                return {};
+            }),
+            setMultiplier: (multiplier) => set({ activeMultiplier: multiplier }),
 
             addXp: async (amount, topicId, quizCorrect, selectedOptionIndex, incrementStreak) => {
                 // Optimistic local update
@@ -159,6 +199,7 @@ export const useUserStore = create<UserState>()(
 
             syncWithDatabase: async () => {
                 try {
+                    set({ hearts: 3, heartsRefillStartedAt: null });
                     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
                     const res = await fetch(`/api/user/stats?tz=${encodeURIComponent(tz)}`);
                     if (res.ok) {
@@ -186,7 +227,10 @@ export const useUserStore = create<UserState>()(
                 userEmail: state.userEmail,
                 userAvatar: state.userAvatar,
                 suggestedAvatars: state.suggestedAvatars,
-                streakShields: state.streakShields
+                streakShields: state.streakShields,
+                hearts: state.hearts,
+                heartsRefillStartedAt: state.heartsRefillStartedAt,
+                activeMultiplier: state.activeMultiplier
             }),
         }
     )

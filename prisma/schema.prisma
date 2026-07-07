@@ -28,6 +28,11 @@ model User {
   activities    UserActivity[]
   quests        UserQuest[]
   trophies      UserTrophy[]
+  topicRatings  UserTopicRating[]
+  seasonArchives   SeasonArchive[]
+  conceptMasteries ConceptMastery[]
+  favoriteDecks    UserFavoriteDeck[]
+  inventories      UserInventory[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -44,22 +49,27 @@ model UserStat {
   streakShields          Int      @default(1)
   predictionCorrectCount Int      @default(0)
   
+  globalRating           Int      @default(1000)
+  peakRating             Int      @default(1000)
+  
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 }
 
 model Topic {
-  id          String   @id @default(cuid())
-  title       String
-  slug        String   @unique
-  emoji       String?
-  summary     String?
-  content     String?  // JSON formatted blocks
-  isPremium   Boolean  @default(false)
-  type        String   @default("DAILY") // e.g., DAILY, HUB
-  season      String?
-  cluster     String?
-  dayOfWeek   Int?
+  id               String   @id @default(cuid())
+  title            String
+  slug             String   @unique
+  emoji            String?
+  summary          String?
+  content          String?  // JSON formatted blocks
+  isPremium        Boolean  @default(false)
+  type             String   @default("DAILY") // e.g., DAILY, HUB
+  season           String?
+  cluster          String?
+  dayOfWeek        Int?
+  
+  difficultyRating Int      @default(1200)
   
   userActivities UserActivity[]
   
@@ -182,4 +192,111 @@ model VerificationToken {
   expires    DateTime
  
   @@unique([identifier, token])
+}
+
+model UserTopicRating {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cluster    String
+  rating     Int      @default(1000)
+  peakRating Int      @default(1000)
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, cluster])
+  @@index([userId])
+}
+
+model UserRatingHistory {
+  id         String   @id @default(cuid())
+  userId     String
+  rating     Int
+  cluster    String   // "GLOBAL" or category cluster name
+  recordedAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Season {
+  id        String          @id @default(cuid())
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  archives  SeasonArchive[]
+}
+
+model SeasonArchive {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  seasonId    String
+  season      Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  finalRating Int
+  rankName    String
+  xpEarned    Int
+  createdAt   DateTime @default(now())
+}
+
+model Concept {
+  id             String           @id @default(cuid())
+  name           String           @unique
+  cluster        String
+  difficulty     Int              @default(1200)
+  masteryEntries ConceptMastery[]
+}
+
+model ConceptMastery {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conceptId String
+  concept   Concept  @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  stars     Float    @default(0.0) // 0.0 to 5.0
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, conceptId])
+}
+
+model GhostRun {
+  id         String   @id @default(cuid())
+  userId     String
+  topicId    String
+  score      Int
+  totalTime  Float
+  answersJson String
+  rating     Int
+  createdAt  DateTime @default(now())
+}
+
+model PvpMatch {
+  id              String   @id @default(cuid())
+  challengerId    String
+  opponentId      String
+  challengerScore Int
+  opponentScore   Int
+  challengerTime  Float
+  opponentTime    Float
+  eloChange       Int
+  status          String   // "VICTORY", "DEFEAT", "DRAW"
+  createdAt       DateTime @default(now())
+}
+
+model UserFavoriteDeck {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cluster   String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, cluster])
+}
+
+model UserInventory {
+  id          String   @id @default(cuid())
+  userId      String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemType    String   // "AVATAR", "FRAME", "THEME", "TITLE"
+  itemId      String
+  equipped    Boolean  @default(false)
+  createdAt   DateTime @default(now())
 }

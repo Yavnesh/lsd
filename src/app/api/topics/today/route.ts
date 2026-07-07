@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     try {
         const timezone = req.nextUrl.searchParams.get("tz") || undefined;
         const dateParam = req.nextUrl.searchParams.get("date") || new Date().toISOString().slice(0, 10);
-        const { season, dayOfWeek } = getScheduledSeasonAndDay(timezone);
+        const { season, dayOfWeek } = getScheduledSeasonAndDay(timezone, 0, dateParam);
 
         const cacheKey = `today-topic-${season}-${dayOfWeek}-${dateParam}`;
         const cached = cache.get<any>(cacheKey);
@@ -55,23 +55,29 @@ export async function GET(req: NextRequest) {
             }
         }
 
-        // Pick the first free topic as "today's featured quest"
-        const freeTopic = todayTopics.find(t => !t.isPremium) || todayTopics[0];
+        // Pick a free topic as "today's featured quest", rotating by dayOfWeek
+        const freeTopics = todayTopics.filter(t => !t.isPremium);
+        const candidateTopics = freeTopics.length > 0 ? freeTopics : todayTopics;
+        const featuredIndex = (dayOfWeek - 1) % candidateTopics.length;
+        const freeTopic = candidateTopics[featuredIndex] || candidateTopics[0];
 
         // Parse content blocks
         const parsedContent = freeTopic.content ? JSON.parse(freeTopic.content) : [];
 
-        // Build prediction from hook block
-        const hookText = parsedContent.find((b: any) => b.type === "hook")?.text
+        // Build prediction from prediction or hook block
+        const predictionBlock = parsedContent.find((b: any) => b.type === "prediction");
+        const revealBlock = parsedContent.find((b: any) => b.type === "reveal");
+        const hookText = parsedContent.find((b: any) => b.type === "mission_brief")?.text
+            || parsedContent.find((b: any) => b.type === "hook")?.text
             || "Every day is an opportunity to learn something surprising about how you think.";
         const prediction = {
-            statement: hookText,
+            statement: predictionBlock?.question || hookText,
             correctAnswer: true,
-            explanation: parsedContent.find((b: any) => b.type === "meme")?.explanation || "Teachable moment."
+            explanation: revealBlock?.text || parsedContent.find((b: any) => b.type === "meme")?.explanation || "Teachable moment."
         };
 
         // Tomorrow's teaser
-        const tomorrowSchedule = getScheduledSeasonAndDay(timezone, 1);
+        const tomorrowSchedule = getScheduledSeasonAndDay(timezone, 1, dateParam);
         const tomorrowTopic = await prisma.topic.findFirst({
             where: { season: tomorrowSchedule.season, dayOfWeek: tomorrowSchedule.dayOfWeek }
         });
