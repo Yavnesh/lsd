@@ -62,7 +62,7 @@ LSD applies gaming loops directly to educational mechanics to drive daily engage
 ## 💻 Tech Stack
 
 - **Framework:** [Next.js](https://nextjs.org/) (App Router, Turbopack)
-- **Database ORM:** [Prisma ORM](https://www.prisma.io/) with a local SQLite database
+- **Database ORM:** [Prisma ORM](https://www.prisma.io/) with a PostgreSQL database
 - **Authentication:** [NextAuth.js](https://next-auth.js.org/) (supporting Google OAuth and credentials fallback)
 - **State Store:** [Zustand](https://github.com/pmndrs/zustand) (supporting persistence for hearts and multipliers)
 - **Styling:** [Tailwind CSS v4](https://tailwindcss.com/) with responsive themes (Light warm parchment / Dark forest night)
@@ -81,7 +81,7 @@ npm install
 ### 2. Environment Configuration
 Create a `.env` file in the root directory and define the following variables:
 ```env
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="postgresql://user:password@localhost:5432/lsd?schema=public"
 
 # Next Auth Configuration
 NEXTAUTH_URL="http://localhost:3000"
@@ -93,7 +93,7 @@ GOOGLE_CLIENT_SECRET="your_google_client_secret"
 ```
 
 ### 3. Database Initialization & Seeding
-Prepare your SQLite database, apply schemas, and seed the curriculum:
+Prepare your PostgreSQL database, apply schemas, and seed the curriculum:
 ```bash
 npx prisma generate
 npx prisma db push

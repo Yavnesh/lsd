@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { motion } from "framer-motion";
 import { Sparkles, Check, ArrowRight, ShieldCheck, Zap } from "lucide-react";
-import confetti from "canvas-confetti";
 
 export default function PremiumPage() {
     const { data: session, status, update } = useSession();
@@ -29,11 +28,14 @@ export default function PremiumPage() {
             if (res.ok) {
                 // Trigger success state
                 setSuccess(true);
-                confetti({
-                    particleCount: 200,
-                    spread: 100,
-                    origin: { y: 0.5 },
-                    colors: ['#6C5CE7', '#FFD700', '#00BFFF', '#32D74B']
+                import("canvas-confetti").then((module) => {
+                    const confetti = module.default || module;
+                    confetti({
+                        particleCount: 200,
+                        spread: 100,
+                        origin: { y: 0.5 },
+                        colors: ['#6C5CE7', '#FFD700', '#00BFFF', '#32D74B']
+                    });
                 });
 
                 // Update session state so client components pick up the new role/premium status

@@ -18,6 +18,16 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "No active game session found" }, { status: 404 });
         }
 
+        // Anti-Cheat: Validate duration (Minimum 5 seconds)
+        if (gameSession.startedAt) {
+            const startedAt = new Date(gameSession.startedAt).getTime();
+            const now = Date.now();
+            if (now - startedAt < 5000) {
+                // Cheating detected (completed too fast)
+                return NextResponse.json({ error: "Quest completed suspiciously fast. Anti-cheat triggered." }, { status: 400 });
+            }
+        }
+
         // 2. Immediate Flush Event: Persist to Postgres database atomically
         await prisma.$transaction(async (tx) => {
             // Upsert UserActivity record as COMPLETED

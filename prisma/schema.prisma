@@ -81,8 +81,10 @@ model UserActivity {
   id                  String   @id @default(cuid())
   userId              String
   user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  topicId             String
-  topic               Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  topicId             String?
+  topic               Topic?    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  missionId           String?
+  mission             Mission?  @relation(fields: [missionId], references: [id], onDelete: Cascade)
   
   status              String   @default("COMPLETED") // COMPLETED, FAILED
   earnedXp            Int      @default(0)
@@ -95,6 +97,7 @@ model UserActivity {
   @@unique([userId, topicId])
   @@index([userId])
   @@index([topicId])
+  @@index([missionId])
 }
 
 model Quest {
@@ -300,3 +303,72 @@ model UserInventory {
   equipped    Boolean  @default(false)
   createdAt   DateTime @default(now())
 }
+
+model World {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  emoji       String
+  description String?
+  regions     Region[]
+  createdAt   DateTime @default(now())
+}
+
+model Region {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  worldId     String
+  world       World     @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  missions    Mission[]
+  createdAt   DateTime  @default(now())
+}
+
+enum DifficultyTier {
+  EASY
+  MEDIUM
+  HARD
+}
+
+model Mission {
+  id            String         @id @default(cuid())
+  name          String
+  slug          String         @unique
+  sequenceOrder Int
+  difficulty    DifficultyTier @default(EASY)
+  status        String         @default("DRAFT") // DRAFT, PENDING, APPROVED, PUBLISHED, ARCHIVED
+  regionId      String
+  region        Region         @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  questions     Question[]
+  userActivities UserActivity[]
+  createdAt     DateTime       @default(now())
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  SCENARIO_DECISION
+  MYTH_FACT
+  FILL_CONCEPT
+  ORDER_STEPS
+}
+
+model Question {
+  id           String       @id @default(cuid())
+  missionId    String
+  mission      Mission      @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  type         QuestionType @default(MULTIPLE_CHOICE)
+  text         String
+  optionsJson  String
+  correctIndex Int
+  explanation  String
+  createdAt    DateTime     @default(now())
+}
+
+model GameSessionCache {
+  userId    String   @id
+  data      String
+  isDirty   Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+}
+
