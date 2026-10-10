@@ -1,111 +1,172 @@
 # ⚡ LSD: Learn Something Daily
 
 > **"The Duolingo of Real-Life Knowledge."**  
-> Become 1% smarter every single day in less than 5 minutes, without the boring textbooks.
+> Become 1% smarter every single day in under 5 minutes through interactive visual mental models, competitive PvP duels, and infinite universe exploration.
 
-LSD is a highly interactive, gamified micro-learning platform. It transforms complex mental models, cognitive biases, behavioral economics, money, health, and thinking skills into visual, humorous, and competitive learning quests.
+**Live Production:** [https://www.learnsomethingdaily.com](https://www.learnsomethingdaily.com)
 
 ---
 
-## 🗺️ Product Vision & Mission
+## 🗺️ Product Overview & Architecture
 
-Our mission is to teach the most important frameworks that shape everyday life—concepts that are critical to success, relationships, and finance, but are rarely covered in traditional schools.
+LSD is a gamified micro-learning platform engineered to teach essential real-world frameworks—from cognitive biases and behavioral economics to decision-making models, emotional resilience, and financial psychology.
 
-### 🎭 Core Curriculum Paths
-- **Understand Yourself:** Personality types, habits, motivation, emotions, self-awareness.
-- **Surviving the Internet:** Social media psychology, attention economy, digital habits.
-- **Your Body Explained:** Sleep architecture, stress biology, nutrition, brain health.
-- **Think Better:** Decision making, cognitive biases, critical thinking, mental models.
-- **Money Without the Boring Stuff:** Consumer psychology, behavioral finance, wealth building.
+```mermaid
+graph TD
+    User([Learner]) --> Auth[NextAuth / Google OAuth / Credentials]
+    Auth --> Hub[Daily Quest & Learn Hub /learn]
+    Hub --> Slides[7-Block Cognitive Loop]
+    Slides --> Quizzes[Interactive Decision Quizzes]
+    Quizzes --> Gamification[XP + Leveling + Streak Shields + Artifacts]
+    Gamification --> Arena[Mind Gym PvP Duels / Leaderboards]
+    Hub --> Universe[Universe Graph Map /universe]
+    
+    Admin([Admin / Operators]) --> AdminPanel[Admin Operations Dashboard /admin]
+    AdminPanel --> AI_Gen[Multi-Agent AI Generator / Gemini API]
+    AdminPanel --> SuggestQueue[Community & AI Suggestion Pipeline]
+    AdminPanel --> ContentTree[Universe / Worlds / Missions Manager]
+```
 
 ---
 
 ## 🔄 The 7-Block Storytelling Loop
 
-Instead of standard read-and-assess loops, every topic utilizes an intertwined **7-slide cognitive loop** designed by behavioral psychologists to maximize retention and keep learning engaging:
+Every daily lesson is delivered via a structured **7-slide cognitive engagement model** designed to maximize retention:
 
 ```mermaid
-graph TD
+graph LR
     A[1. The Hook] --> B[2. The Meme]
     B --> C[3. The Reveal]
     C --> D[4. Why It Matters]
     D --> E[5. Test Yourself]
     E --> F[6. Mind-Blowing Fact]
-    F --> G[7. The Share Card]
+    F --> G[7. Share Card]
 ```
 
-1. **The Hook 🧐:** Creates immediate curiosity and resonance (requires active reaction click to progress).
-2. **Meme Version 🎭:** Relatable situation cartoon or visual providing instant recognition of the concept.
-3. **The Reveal 🔓:** Explains the science behind the pattern in under 100 words (requires reaction to unlock).
-4. **Why It Matters 📊:** Demonstrates the real-life impact on Career, Money, and Relationships (requires tap-to-unlock cards).
-5. **Test Yourself (Quiz) ⚡:** Interactive multiple-choice challenge to check recall.
-6. **Mind-Blowing Fact 💡:** An unexpected, high-impact takeaway reinforcing the concept.
-7. **The Share Card 📱:** A highly visual, shareable graphic summarizing the lesson.
+1. **The Hook 🧐:** Builds immediate resonance and curiosity with required reaction clicks.
+2. **Meme Version 🎭:** Humor-driven cartoon / visual context for instant recognition.
+3. **The Reveal 🔓:** Concise scientific and psychological breakdown in under 100 words.
+4. **Why It Matters 📊:** Real-world impact cards spanning Career, Money, and Relationships.
+5. **Test Yourself ⚡:** Scenario-driven multiple-choice challenge to test comprehension.
+6. **Mind-Blowing Fact 💡:** High-impact takeaway reinforcing the core concept.
+7. **The Share Card 📱:** Visual summary card ready for social sharing and streaks.
 
 ---
 
-## 🏆 Gamification & Arena PvP Mode
+## 🌌 The Knowledge Universe (`/universe`)
 
-LSD applies gaming loops directly to educational mechanics to drive daily engagement:
+An interactive, zoomable galaxy of interconnected knowledge nodes powered by `@xyflow/react`:
+- **Hierarchy:** Worlds $\rightarrow$ Regions $\rightarrow$ Missions $\rightarrow$ Concepts.
+- **Fog of War:** Unlocks adjacent nodes dynamically as the user masters prerequisite topics.
+- **Knowledge Artifacts:** Rare unlockables that grant passive XP buffs and account badges.
 
-- **XP & Levels:** Earn XP through quests and duels to level up from *Curious Mind* to *Sage*.
-- **Streak & Shields:** Maintain a daily habit loop with active streak counts, protected by purchasable Streak Shields.
-- **3 Hearts (Lives):** Limits daily quiz attempts to encourage careful reasoning. Refills over time or resets on request.
-- **Mind Gym Arena (PvP):** 
-  - Compete in head-to-head duels against **Ghost Runs** of comparable players or bot templates.
-  - Skips reading slides and drops you straight into speed-based quiz cards.
-  - A **15-second countdown timer** rewards fast answers with XP multipliers (2x under 3s, 1.5x under 8s).
-  - Winners are decided by accuracy and response time, modifying ELO ratings dynamically.
+---
+
+## 🏆 Arena, PvP & Gamification System
+
+- **Dynamic ELO & Matchmaking:** Real-time head-to-head duels with Ghost Runs and live timer scoring.
+- **Streak Shields:** Habit loop protection against missed days.
+- **Energy & Hearts (Lives):** 3 daily lives encourage careful reasoning and can be refilled.
+- **Global Leaderboards:** Track daily, weekly, and all-time standing across learning clusters.
+
+---
+
+## 🤖 Admin Operations & Agent Pipeline (`/admin`)
+
+- **Multi-Agent AI Generator:** Automated researcher, planner, and questioner agents leveraging Google Gemini AI for daily curriculum generation.
+- **Suggestion Queue:** Community & AI draft review pipeline with batch approvals.
+- **Content Hierarchy Manager:** Visual tree editor for Worlds, Regions, and Missions.
 
 ---
 
 ## 💻 Tech Stack
 
-- **Framework:** [Next.js](https://nextjs.org/) (App Router, Turbopack)
-- **Database ORM:** [Prisma ORM](https://www.prisma.io/) with a PostgreSQL database
-- **Authentication:** [NextAuth.js](https://next-auth.js.org/) (supporting Google OAuth and credentials fallback)
-- **State Store:** [Zustand](https://github.com/pmndrs/zustand) (supporting persistence for hearts and multipliers)
-- **Styling:** [Tailwind CSS v4](https://tailwindcss.com/) with responsive themes (Light warm parchment / Dark forest night)
-- **Animations:** Framer Motion & Canvas Confetti
+- **Framework:** [Next.js 16 (Turbopack)](https://nextjs.org/) (App Router, Server Actions)
+- **Language:** TypeScript 5
+- **Database & ORM:** PostgreSQL + [Prisma ORM](https://www.prisma.io/)
+- **Authentication:** [NextAuth.js v4](https://next-auth.js.org/) (Google OAuth 2.0 & Credentials)
+- **State Management:** [Zustand](https://github.com/pmndrs/zustand)
+- **Styling & UI:** [Tailwind CSS v4](https://tailwindcss.com/) + [Framer Motion](https://www.framer.com/motion/)
+- **Graph & Visualization:** [@xyflow/react (React Flow)](https://reactflow.dev/) + `@tsparticles/react`
+- **Testing:** [Vitest](https://vitest.dev/)
 
 ---
 
-## 🛠️ Getting Started
+## 🛠️ Development & Deployment Setup
 
 ### 1. Installation
-Clone the repository and download project dependencies:
 ```bash
+git clone https://github.com/Yavnesh/lsd.git
+cd lsd
 npm install
 ```
 
-### 2. Environment Configuration
-Create a `.env` file in the root directory and define the following variables:
+### 2. Environment Variables Configuration
+Create a `.env` file in the root directory:
 ```env
+# Database Connection (Pooled connection for serverless/production)
 DATABASE_URL="postgresql://user:password@localhost:5432/lsd?schema=public"
 
-# Next Auth Configuration
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="generate_a_secure_random_hash"
+# NextAuth Configuration
+NEXTAUTH_URL="http://localhost:3000" # Use https://www.learnsomethingdaily.com in production
+NEXTAUTH_SECRET="your-32-character-secret-key"
 
-# Google Credentials (obtain via Google Developer Console)
-GOOGLE_CLIENT_ID="your_google_client_id"
-GOOGLE_CLIENT_SECRET="your_google_client_secret"
+# Google OAuth (from Google Cloud Console)
+GOOGLE_CLIENT_ID="your-google-client-id.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
+
+# AI Generation Engine
+GEMINI_API_KEY="your-gemini-api-key"
+
+# Cron Security Secret
+CRON_SECRET="your-secure-cron-secret"
 ```
 
-### 3. Database Initialization & Seeding
-Prepare your PostgreSQL database, apply schemas, and seed the curriculum:
+### 3. Database Initialization
 ```bash
+# Generate Prisma client
 npx prisma generate
-npx prisma db push
-node scripts/seed-content.js
-```
-*Note: Seeding generates 189 topics representing the 5 seasons.*
 
-### 4. Running the Development Server
+# Apply database schema
+npx prisma db push
+
+# Seed initial worlds, topics, and starter decks
+npx prisma db seed
+```
+
+### 4. Running Locally
 ```bash
 npm run dev
 ```
-Open your browser and navigate to `http://localhost:3000`. You can inspect database tables by executing `npx prisma studio` in a separate terminal.
+Open [http://localhost:3000](http://localhost:3000) to view the application.
+
+### 5. Quality Assurance & Tests
+```bash
+# Run ESLint validation
+npm run lint
+
+# Run Unit & Integration Tests
+npm test
+
+# Verify Production Build
+npm run build
+```
+
+---
+
+## 🌿 Branching Strategy & Release Lifecycle
+
+LSD follows a strict dual-branch deployment workflow:
+
+```mermaid
+graph LR
+    Feature[feat/* or fix/*] -->|PR + CI Verification| Develop[develop (Staging)]
+    Develop -->|Release Promotion PR| Master[master (Production)]
+    Master -->|Automatic Deployment| Vercel[Vercel Live: www.learnsomethingdaily.com]
+```
+
+- **`develop`**: Integration branch for ongoing development, test verification, and preview builds.
+- **`master`**: Production release branch connected to Vercel live deployments. Direct pushes to `master` are protected.
 
 ---
 
