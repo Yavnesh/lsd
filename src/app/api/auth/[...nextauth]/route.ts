@@ -10,6 +10,9 @@ const isProduction = process.env.NODE_ENV === "production";
 export const authOptions: NextAuthOptions = {
     // @ts-ignore PrismaAdapter types mismatch slightly sometimes in next-auth v4 but it works
     adapter: PrismaAdapter(prisma),
+    // Ensures NextAuth trusts forwarded host headers (essential for Vercel and custom domains like www.learnsomethingdaily.com)
+    // @ts-ignore
+    trustHost: true,
     providers: [
         GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID || "mock-id",

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import confetti from "canvas-confetti";
 import { CheckCircle2, XCircle, Swords, BookOpen, RotateCcw } from "lucide-react";
 import Link from "next/link";
 
@@ -55,11 +54,14 @@ export const QuizBlock = ({
         setIsCorrect(correct);
 
         if (correct) {
-            confetti({
-                particleCount: 200,
-                spread: 100,
-                origin: { y: 0.55 },
-                colors: ['#F7C948', '#7C4DFF', '#4CAF50', '#29B6F6', '#FF9F43']
+            import("canvas-confetti").then((module) => {
+                const confetti = module.default || module;
+                confetti({
+                    particleCount: 200,
+                    spread: 100,
+                    origin: { y: 0.55 },
+                    colors: ['#F7C948', '#7C4DFF', '#4CAF50', '#29B6F6', '#FF9F43']
+                });
             });
             if (onSuccess) onSuccess(index);
         } else {

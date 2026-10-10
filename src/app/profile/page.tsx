@@ -35,9 +35,12 @@ export default function ProfilePage() {
     const [stats, setStats] = useState<any>(null);
     const [topicRatings, setTopicRatings] = useState<any[]>([]);
     const [ratingHistory, setRatingHistory] = useState<any[]>([]);
+    const [artifacts, setArtifacts] = useState<any[]>([]);
+    const [identityTitle, setIdentityTitle] = useState("Curious Human");
 
     // Expand settings
     const [showSettings, setShowSettings] = useState(false);
+    const [showAllCategories, setShowAllCategories] = useState(false);
 
     // Editing mode toggles
     const [editName, setEditName] = useState(false);
@@ -63,6 +66,12 @@ export default function ProfilePage() {
                     setStats(statsData.stats);
                     setTopicRatings(statsData.topicRatings || []);
                     setRatingHistory(statsData.ratingHistory || []);
+                    setIdentityTitle(statsData.stats?.identityTitle || "Curious Human");
+                    // Mocking artifacts for the UI for now
+                    setArtifacts([
+                        { id: 1, name: "Crystal of Cognition", rarity: "RARE", emoji: "🔮", buff: "+5% XP in Psychology" },
+                        { id: 2, name: "Scroll of Habits", rarity: "COMMON", emoji: "📜", buff: "Streak Protection" }
+                    ]);
                 }
             } catch (err) {
                 console.error("Failed to load profile", err);
@@ -171,7 +180,8 @@ export default function ProfilePage() {
                     </div>
 
                     <h1 className="font-game text-2xl text-foreground mt-2">{name || "Learner"}</h1>
-                    <p className="text-sm text-text-secondary mt-1">Level {stats?.level || "Curious Mind"} • {stats?.xp || 0} XP</p>
+                    <p className="text-sm font-bold text-brand-gold uppercase tracking-widest mt-1">{identityTitle}</p>
+                    <p className="text-xs text-text-secondary mt-1">Level {stats?.level || 1} • {stats?.xp || 0} XP</p>
                 </div>
 
                 {/* 2. RATING HUD */}
@@ -269,39 +279,69 @@ export default function ProfilePage() {
                             No topic ratings recorded yet. Complete a quest to start ranking!
                         </div>
                     ) : (
-                        topicRatings.map((tr, idx) => {
-                            const title = getMasteryTitle(tr.rating);
-                            const color = getMasteryColor(tr.rating);
-                            return (
-                                <motion.div 
-                                    key={idx}
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: idx * 0.05 }}
-                                    className="game-card p-4 rounded-2xl border border-white/5 hover:border-brand-primary/20 transition-all flex items-center justify-between"
+                        <>
+                            {topicRatings.slice(0, showAllCategories ? undefined : 5).map((tr, idx) => {
+                                const title = getMasteryTitle(tr.rating);
+                                const color = getMasteryColor(tr.rating);
+                                return (
+                                    <motion.div 
+                                        key={idx}
+                                        initial={{ opacity: 0, x: -10 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: idx * 0.05 }}
+                                        className="game-card p-4 rounded-2xl border border-white/5 hover:border-brand-primary/20 transition-all flex items-center justify-between"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-lg">
+                                                🧠
+                                            </div>
+                                            <div>
+                                                <span className="text-sm font-bold text-foreground block">{tr.cluster}</span>
+                                                <span 
+                                                    className="text-[8px] font-bold uppercase tracking-wider block mt-0.5"
+                                                    style={{ color }}
+                                                >
+                                                    {title}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="font-game text-lg text-foreground block">{tr.rating}</span>
+                                            <span className="text-[8px] text-text-secondary block">Peak: {tr.peakRating}</span>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                            {topicRatings.length > 5 && (
+                                <button 
+                                    onClick={() => setShowAllCategories(!showAllCategories)}
+                                    className="w-full py-3 mt-2 game-card rounded-2xl border border-white/5 hover:bg-white/5 text-xs font-bold text-text-secondary transition-all cursor-pointer"
                                 >
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-lg">
-                                            🧠
-                                        </div>
-                                        <div>
-                                            <span className="text-sm font-bold text-foreground block">{tr.cluster}</span>
-                                            <span 
-                                                className="text-[8px] font-bold uppercase tracking-wider block mt-0.5"
-                                                style={{ color }}
-                                            >
-                                                {title}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <span className="font-game text-lg text-foreground block">{tr.rating}</span>
-                                        <span className="text-[8px] text-text-secondary block">Peak: {tr.peakRating}</span>
-                                    </div>
-                                </motion.div>
-                            );
-                        })
+                                    {showAllCategories ? "Show Less" : `View ${topicRatings.length - 5} More Categories`}
+                                </button>
+                            )}
+                        </>
                     )}
+                </div>
+
+                {/* ARTIFACT VAULT (NEW) */}
+                <div className="space-y-3">
+                    <span className="text-[10px] font-black uppercase text-brand-gold tracking-widest block mb-1">Artifact Vault</span>
+                    <div className="grid grid-cols-2 gap-4">
+                        {artifacts.map((artifact, idx) => (
+                            <div key={idx} className="game-card p-4 rounded-2xl border border-brand-gold/20 bg-gradient-to-br from-brand-gold/5 to-transparent text-center flex flex-col items-center justify-center relative overflow-hidden group">
+                                <div className="absolute inset-0 bg-brand-gold/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <div className="text-4xl mb-2 drop-shadow-[0_0_15px_rgba(255,215,0,0.5)]">
+                                    {artifact.emoji}
+                                </div>
+                                <span className="font-bold text-xs text-foreground block">{artifact.name}</span>
+                                <span className="text-[8px] font-black uppercase tracking-widest block mt-1" style={{ color: artifact.rarity === 'RARE' ? '#7C4DFF' : '#A0AEC0' }}>
+                                    {artifact.rarity}
+                                </span>
+                                <span className="text-[9px] text-text-secondary mt-2 block">{artifact.buff}</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
                 {/* 6. SETTINGS ACCORDION */}

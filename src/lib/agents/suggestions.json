@@ -1,0 +1,21 @@
+[
+  {
+    "id": "sug_1",
+    "type": "WORLD",
+    "name": "Entrepreneur's Empire",
+    "reason": "Business thinking and startup frameworks are currently unrepresented.",
+    "confidence": 0.9,
+    "estimatedDifficulty": "MEDIUM",
+    "estimatedPopularity": "HIGH"
+  },
+  {
+    "id": "sug_2",
+    "type": "REGION",
+    "parentName": "Bio-Dome Arena",
+    "name": "Circadian Rhythm",
+    "reason": "Expands sleep biome to explore biological timers.",
+    "confidence": 0.85,
+    "estimatedDifficulty": "EASY",
+    "estimatedPopularity": "MEDIUM"
+  }
+]

@@ -5,7 +5,6 @@ import { useUserStore } from "@/store/useUserStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, Swords, Timer, Zap, X, CheckCircle, AlertTriangle, ChevronRight, RefreshCw, Trophy, Lock, Unlock, Smile, ThumbsUp } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
-import confetti from "canvas-confetti";
 import Link from "next/link";
 
 const TinderSwipeCard = ({
@@ -317,23 +316,26 @@ function LearnQuestContent() {
             if (isVictory) {
                 const duration = 2.5 * 1000;
                 const end = Date.now() + duration;
-                (function frame() {
-                    confetti({
-                        particleCount: 4,
-                        angle: 60,
-                        spread: 55,
-                        origin: { x: 0.1, y: 0.8 }
-                    });
-                    confetti({
-                        particleCount: 4,
-                        angle: 120,
-                        spread: 55,
-                        origin: { x: 0.9, y: 0.8 }
-                    });
-                    if (Date.now() < end) {
-                        requestAnimationFrame(frame);
-                    }
-                }());
+                import("canvas-confetti").then((module) => {
+                    const confetti = module.default || module;
+                    (function frame() {
+                        confetti({
+                            particleCount: 4,
+                            angle: 60,
+                            spread: 55,
+                            origin: { x: 0.1, y: 0.8 }
+                        });
+                        confetti({
+                            particleCount: 4,
+                            angle: 120,
+                            spread: 55,
+                            origin: { x: 0.9, y: 0.8 }
+                        });
+                        if (Date.now() < end) {
+                            requestAnimationFrame(frame);
+                        }
+                    }());
+                });
             }
         }
     }, [currentStage, activeBlocks.length, isPvp, pvpCompleteResult, topic]);
@@ -387,10 +389,13 @@ function LearnQuestContent() {
             else if (secondsElapsed <= 8) multiplier = 1.5;
             setMultiplier(multiplier);
 
-            confetti({
-                particleCount: 80,
-                spread: 60,
-                origin: { y: 0.8 }
+            import("canvas-confetti").then((module) => {
+                const confetti = module.default || module;
+                confetti({
+                    particleCount: 80,
+                    spread: 60,
+                    origin: { y: 0.8 }
+                });
             });
             await addXp(Math.round(20 * multiplier), topic?.id, true, activeOption || 0);
         }

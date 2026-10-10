@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 import { getUserSession, deleteUserSession, clearDirtyFlag } from "@/lib/redis";
+import { UniverseEngine } from "@/lib/engines/universe-engine";
 
 export async function POST(req: NextRequest) {
     try {
@@ -16,6 +17,16 @@ export async function POST(req: NextRequest) {
         const gameSession = await getUserSession(userId);
         if (!gameSession) {
             return NextResponse.json({ error: "No active game session found" }, { status: 404 });
+        }
+
+        // Anti-Cheat: Validate duration (Minimum 5 seconds)
+        if (gameSession.startedAt) {
+            const startedAt = new Date(gameSession.startedAt).getTime();
+            const now = Date.now();
+            if (now - startedAt < 5000) {
+                // Cheating detected (completed too fast)
+                return NextResponse.json({ error: "Quest completed suspiciously fast. Anti-cheat triggered." }, { status: 400 });
+            }
         }
 
         // 2. Immediate Flush Event: Persist to Postgres database atomically
@@ -39,24 +50,24 @@ export async function POST(req: NextRequest) {
                     earnedXp: gameSession.xpEarned,
                 },
             });
-
-            // Update user global stats
-            const stats = await tx.userStat.findUnique({ where: { userId } });
-            if (stats) {
-                await tx.userStat.update({
-                    where: { userId },
-                    data: {
-                        xp: stats.xp + gameSession.xpEarned,
-                    },
-                });
-            }
         });
+
+        // Run the Universe Progression Engine
+        const progression = await UniverseEngine.processTopicCompletion(
+            userId, 
+            gameSession.topicId, 
+            gameSession.xpEarned
+        );
 
         // 3. Cleanup session caches
         await deleteUserSession(userId);
         await clearDirtyFlag(userId);
 
-        return NextResponse.json({ success: true, xpEarned: gameSession.xpEarned });
+        return NextResponse.json({ 
+            success: true, 
+            xpEarned: gameSession.xpEarned,
+            progression 
+        });
     } catch (e) {
         console.error("Failed to complete game session:", e);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });

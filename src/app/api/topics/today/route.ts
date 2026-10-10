@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
         // Find today's topics — all quests for this season + dayOfWeek
         let todayTopics = await prisma.topic.findMany({
-            where: { season, dayOfWeek },
+            where: { season, dayOfWeek, type: { not: "DRAFT" } },
             orderBy: { createdAt: "asc" }
         });
 
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
             console.log(`[Today Route] No topics for Season="${season}" Day=${dayOfWeek} — triggering batch generation...`);
             await generateDailyBatch(season, dayOfWeek);
             todayTopics = await prisma.topic.findMany({
-                where: { season, dayOfWeek },
+                where: { season, dayOfWeek, type: { not: "DRAFT" } },
                 orderBy: { createdAt: "asc" }
             });
         }

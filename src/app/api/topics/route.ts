@@ -11,6 +11,9 @@ export async function GET() {
         }
 
         const topics = await prisma.topic.findMany({
+            where: {
+                type: { not: "DRAFT" }
+            },
             orderBy: [
                 { season: "asc" },
                 { dayOfWeek: "asc" }
