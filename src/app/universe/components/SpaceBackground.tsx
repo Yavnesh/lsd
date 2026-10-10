@@ -1,13 +1,20 @@
-import { useCallback } from "react";
+"use client";
+
+import { useEffect, useState } from "react";
 import Particles from "@tsparticles/react";
+import { tsParticles } from "@tsparticles/engine";
 import { loadSlim } from "@tsparticles/slim";
-import type { Engine } from "@tsparticles/engine";
 
 export function SpaceBackground() {
-    const particlesInit = useCallback(async (engine: Engine) => {
-        // loadSlim is lightweight and contains all standard features
-        await loadSlim(engine);
+    const [init, setInit] = useState(false);
+
+    useEffect(() => {
+        loadSlim(tsParticles).then(() => {
+            setInit(true);
+        });
     }, []);
+
+    if (!init) return null;
 
     return (
         <div className="absolute inset-0 z-0 bg-world-quest pointer-events-none overflow-hidden">
@@ -16,7 +23,6 @@ export function SpaceBackground() {
             
             <Particles
                 id="tsparticles-space"
-                init={particlesInit}
                 className="absolute inset-0 z-0"
                 options={{
                     background: {

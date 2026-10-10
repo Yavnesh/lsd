@@ -31,8 +31,8 @@ function FlowEngine({ initialWorlds }: { initialWorlds: any[] }) {
     const params = useParams();
     
     // Local state for React Flow to ensure smooth dragging
-    const [nodes, setNodes, onNodesChange] = useNodesState([]);
-    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+    const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
     
     // Global UI state
     const { 
@@ -115,7 +115,9 @@ function FlowEngine({ initialWorlds }: { initialWorlds: any[] }) {
         setLoading(true);
 
         // Update Breadcrumbs & URL
-        const newSlug = node.data.name.toString().toLowerCase().replace(/\s+/g, '-');
+        const nodeData = node.data as any;
+        const nodeName = nodeData?.name ? String(nodeData.name) : 'node';
+        const newSlug = nodeName.toLowerCase().replace(/\s+/g, '-');
         
         // Build URL from existing breadcrumbs to prevent duplicates
         const currentPathSlugs = breadcrumbs.map(b => b.slug).filter(s => s !== 'universe');
@@ -124,7 +126,7 @@ function FlowEngine({ initialWorlds }: { initialWorlds: any[] }) {
         }
         
         const newPath = currentPathSlugs.join('/');
-        pushBreadcrumb({ id: node.id, label: node.data.name as string, slug: newSlug });
+        pushBreadcrumb({ id: node.id, label: nodeName, slug: newSlug });
         router.push(`/universe/${newPath}`);
 
         // ACTUAL LAZY LOADING CHILDREN
