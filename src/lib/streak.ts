@@ -75,7 +75,7 @@ export function calculateStreak(
     }
 
     let currentStreak = 0;
-    let checkDate = new Date(startPoint);
+    const checkDate = new Date(startPoint);
     
     while (true) {
         let checkDateStr = "";

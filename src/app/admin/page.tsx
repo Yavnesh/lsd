@@ -52,13 +52,37 @@ export default function AdminPage() {
   const [statusMessage, setStatusMessage] = useState("");
   const [isError, setIsError] = useState(false);
 
+  const fetchDrafts = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/drafts");
+      if (res.ok) {
+        const data = await res.json();
+        setDrafts(data);
+      }
+    } catch (e) {
+      console.error("Error fetching drafts:", e);
+    }
+  }, []);
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      const usersRes = await fetch("/api/user/stats");
+      if (usersRes.ok) {
+        const data = await usersRes.json();
+        setUsers(data || []);
+      }
+    } catch (e) {
+      console.error("Error fetching users list:", e);
+    }
+  }, []);
+
   // Load Initial Data
   useEffect(() => {
     if (session && (session.user as any)?.role === "ADMIN") {
       fetchDrafts();
       fetchUsers();
     }
-  }, [session]);
+  }, [session, fetchDrafts, fetchUsers]);
 
   // Redirect unauthenticated or non-admin users
   useEffect(() => {
@@ -99,32 +123,6 @@ export default function AdminPage() {
     }
     return () => clearInterval(intervalId);
   }, [currentJobId]);
-
-  const fetchDrafts = async () => {
-    try {
-      const res = await fetch("/api/admin/drafts");
-      if (res.ok) {
-        const data = await res.json();
-        setDrafts(data);
-      }
-    } catch (e) {
-      console.error("Error fetching drafts:", e);
-    }
-  };
-
-  const fetchUsers = async () => {
-    try {
-      const res = await fetch("/api/admin/topics"); // Fetching user/metadata details from topics API as mock dashboard
-      // Standard fetch of users list
-      const usersRes = await fetch("/api/user/stats"); // Using ELO / stats as users data endpoint
-      if (usersRes.ok) {
-        const data = await usersRes.json();
-        setUsers(data || []);
-      }
-    } catch (e) {
-      console.error("Error fetching users list:", e);
-    }
-  };
 
   const handleTriggerPipeline = async (e: React.FormEvent) => {
     e.preventDefault();

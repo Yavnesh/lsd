@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Zap, Map, Swords, Trophy, LogOut, Sun, Moon, Bell, User, MessageSquare } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
 import { useUserStore } from "@/store/useUserStore";
@@ -64,15 +64,13 @@ export const Navbar = () => {
     const userName = session?.user?.name || storeUserName;
     const userAvatar = (session?.user as any)?.selectedAvatar || (session?.user as any)?.defaultAvatar || storeUserAvatar;
     const suggestedAvatars = (session?.user as any)?.suggestedAvatars || storeSuggestedAvatars;
-
-    const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
     const { theme, setTheme } = useTheme();
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => { setMounted(true); }, []);
-
-    // Close menu on route change
-    useEffect(() => { setIsProfileMenuOpen(false); }, [pathname]);
+    const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+    const mounted = useSyncExternalStore(
+        () => () => {},
+        () => true,
+        () => false
+    );
 
     const activeItem = navItems.find(item => item.href === pathname);
 

@@ -18,8 +18,8 @@ export class UniverseEngine {
      */
     static async processTopicCompletion(userId: string, topicId: string, earnedXp: number): Promise<ProgressionResult> {
         let newTitle: string | undefined = undefined;
-        let newArtifacts: string[] = [];
-        let unlockedTopics: string[] = [];
+        const newArtifacts: string[] = [];
+        const unlockedTopics: string[] = [];
         
         await prisma.$transaction(async (tx) => {
             // 1. Fetch current stats
