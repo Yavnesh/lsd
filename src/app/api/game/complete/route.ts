@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 import { getUserSession, deleteUserSession, clearDirtyFlag } from "@/lib/redis";
+import { UniverseEngine } from "@/lib/engines/universe-engine";
 
 export async function POST(req: NextRequest) {
     try {
@@ -49,24 +50,24 @@ export async function POST(req: NextRequest) {
                     earnedXp: gameSession.xpEarned,
                 },
             });
-
-            // Update user global stats
-            const stats = await tx.userStat.findUnique({ where: { userId } });
-            if (stats) {
-                await tx.userStat.update({
-                    where: { userId },
-                    data: {
-                        xp: stats.xp + gameSession.xpEarned,
-                    },
-                });
-            }
         });
+
+        // Run the Universe Progression Engine
+        const progression = await UniverseEngine.processTopicCompletion(
+            userId, 
+            gameSession.topicId, 
+            gameSession.xpEarned
+        );
 
         // 3. Cleanup session caches
         await deleteUserSession(userId);
         await clearDirtyFlag(userId);
 
-        return NextResponse.json({ success: true, xpEarned: gameSession.xpEarned });
+        return NextResponse.json({ 
+            success: true, 
+            xpEarned: gameSession.xpEarned,
+            progression 
+        });
     } catch (e) {
         console.error("Failed to complete game session:", e);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });

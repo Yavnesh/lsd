@@ -33,6 +33,7 @@ model User {
   conceptMasteries ConceptMastery[]
   favoriteDecks    UserFavoriteDeck[]
   inventories      UserInventory[]
+  userArtifacts    UserArtifact[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -49,6 +50,9 @@ model UserStat {
   streakShields          Int      @default(1)
   predictionCorrectCount Int      @default(0)
   
+  identityTitle          String   @default("Curious Human")
+  explorationScore       Int      @default(0)
+  
   globalRating           Int      @default(1000)
   peakRating             Int      @default(1000)
   
@@ -64,6 +68,8 @@ model Topic {
   summary          String?
   content          String?  // JSON formatted blocks
   isPremium        Boolean  @default(false)
+  isHidden         Boolean  @default(false)
+  unlockCondition  String?  // Optional string to define complex unlock prerequisites
   type             String   @default("DAILY") // e.g., DAILY, HUB
   season           String?
   cluster          String?
@@ -304,12 +310,45 @@ model UserInventory {
   createdAt   DateTime @default(now())
 }
 
+model KnowledgeArtifact {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String
+  rarity      String   @default("COMMON") // COMMON, RARE, EPIC, LEGENDARY
+  imageUrl    String
+  passiveBuff String?  // e.g. "+5% XP in Psychology World"
+  
+  worldId     String?
+  regionId    String?
+
+  userArtifacts UserArtifact[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model UserArtifact {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  artifactId  String
+  artifact    KnowledgeArtifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+  
+  earnedAt    DateTime @default(now())
+  
+  @@unique([userId, artifactId])
+  @@index([userId])
+  @@index([artifactId])
+}
+
 model World {
   id          String   @id @default(cuid())
   name        String   @unique
   slug        String   @unique
   emoji       String
   description String?
+  isHidden    Boolean  @default(false)
   regions     Region[]
   createdAt   DateTime @default(now())
 }
@@ -319,6 +358,7 @@ model Region {
   name        String
   slug        String    @unique
   description String?
+  isHidden    Boolean   @default(false)
   worldId     String
   world       World     @relation(fields: [worldId], references: [id], onDelete: Cascade)
   missions    Mission[]

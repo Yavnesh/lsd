@@ -13,6 +13,7 @@ const topicsData = [
     cluster: "Personality",
     dayOfWeek: 1, // Monday
     isPremium: false,
+    isHidden: false,
     content: JSON.stringify([
       { type: "hook", text: "You might be calling yourself an introvert when you're actually just exhausted." },
       {
@@ -60,6 +61,8 @@ const topicsData = [
     cluster: "Relationships",
     dayOfWeek: 2, // Tuesday
     isPremium: false,
+    isHidden: true,
+    unlockCondition: "introvert-vs-extrovert",
     content: JSON.stringify([
       { type: "hook", text: "Why do you chase people who pull away, or run from people who get close?" },
       {
@@ -107,6 +110,8 @@ const topicsData = [
     cluster: "Emotions",
     dayOfWeek: 3, // Wednesday
     isPremium: false,
+    isHidden: true,
+    unlockCondition: "attachment-styles",
     content: JSON.stringify([
       { type: "hook", text: "Reacting instantly feels good for 2 seconds. The regret lasts for weeks." },
       {
@@ -534,7 +539,14 @@ async function main() {
   await prisma.userActivity.deleteMany({});
   await prisma.userQuest.deleteMany({});
   await prisma.userTrophy.deleteMany({});
+  await prisma.userArtifact.deleteMany({});
   await prisma.userStat.deleteMany({});
+  
+  await prisma.knowledgeArtifact.deleteMany({});
+  await prisma.mission.deleteMany({});
+  await prisma.region.deleteMany({});
+  await prisma.world.deleteMany({});
+  
   await prisma.topic.deleteMany({});
   await prisma.quest.deleteMany({});
   await prisma.trophy.deleteMany({});
@@ -557,6 +569,39 @@ async function main() {
   ];
   for (const t of trophies) {
     await prisma.trophy.create({ data: t });
+  }
+
+  console.log("Seeding Worlds...");
+  const worlds = [
+    { name: "The Psychological Realm", slug: "psychological-realm", emoji: "🧠", description: "The deep dive into human behavior." },
+    { name: "The Silicon Galaxy", slug: "silicon-galaxy", emoji: "💻", description: "The world of bits, bytes, and artificial intelligence." },
+    { name: "The Historical Archives", slug: "historical-archives", emoji: "📜", description: "The timeline of humanity." }
+  ];
+  const createdWorlds = [];
+  for (const w of worlds) {
+    createdWorlds.push(await prisma.world.create({ data: w }));
+  }
+
+  console.log("Seeding Regions...");
+  const regions = [
+    { name: "Cognitive Biases", slug: "cognitive-biases", worldId: createdWorlds[0].id, isHidden: false },
+    { name: "Behavioral Patterns", slug: "behavioral-patterns", worldId: createdWorlds[0].id, isHidden: true },
+    { name: "The Architecture of Logic", slug: "architecture-logic", worldId: createdWorlds[1].id, isHidden: false },
+    { name: "Artificial Intelligence", slug: "ai", worldId: createdWorlds[1].id, isHidden: true },
+    { name: "Ancient Civilizations", slug: "ancient-civs", worldId: createdWorlds[2].id, isHidden: false }
+  ];
+  for (const r of regions) {
+    await prisma.region.create({ data: r });
+  }
+
+  console.log("Seeding Knowledge Artifacts...");
+  const artifacts = [
+    { name: "Crystal of Cognition", slug: "crystal-cognition", description: "A glowing crystal that enhances focus.", rarity: "EPIC", imageUrl: "🔮", passiveBuff: "+5% XP in Psychology", worldId: createdWorlds[0].id },
+    { name: "Disk of Turing", slug: "disk-turing", description: "An ancient magnetic disk.", rarity: "RARE", imageUrl: "💽", passiveBuff: "Streak Protection in Silicon Galaxy", worldId: createdWorlds[1].id },
+    { name: "Scroll of Antiquity", slug: "scroll-antiquity", description: "A crumbling papyrus.", rarity: "COMMON", imageUrl: "📜", passiveBuff: "+2% XP in History", worldId: createdWorlds[2].id }
+  ];
+  for (const a of artifacts) {
+    await prisma.knowledgeArtifact.create({ data: a });
   }
 
   console.log("Seeding Topics...");

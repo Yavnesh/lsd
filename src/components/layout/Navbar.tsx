@@ -34,7 +34,7 @@ const navItems = [
     },
     {
         name: "Expedition",
-        href: "/topics",
+        href: "/universe",
         icon: Map,
         emoji: "🗺️",
         desc: "World Map",
@@ -242,66 +242,66 @@ export const Navbar = () => {
                                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                                     exit={{ opacity: 0, y: 8, scale: 0.94 }}
                                                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                                    className="absolute right-0 mt-3 w-72 bg-card border border-border rounded-[1.75rem] p-5 shadow-2xl shadow-black/30 z-50 origin-top-right"
+                                                    className="absolute right-0 mt-3 w-[300px] bg-card/95 backdrop-blur-xl border border-white/10 rounded-[2rem] p-6 shadow-2xl shadow-black/50 z-50 origin-top-right"
                                                 >
                                                     {/* Profile header */}
-                                                    <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border">
-                                                        <div className="w-12 h-12 rounded-2xl bg-brand-primary/20 flex items-center justify-center overflow-hidden border-2 border-brand-primary/30">
+                                                    <div className="flex items-center gap-4 mb-5 pb-5 border-b border-white/10">
+                                                        <div className="w-14 h-14 rounded-2xl bg-brand-primary/20 flex items-center justify-center overflow-hidden border-2 border-brand-primary/30 shadow-inner">
                                                             {userAvatar?.startsWith('http') ? (
                                                                 <img src={userAvatar} alt="Avatar" className="w-full h-full object-cover" />
-                                                            ) : <span className="text-2xl">{userAvatar || "🧠"}</span>}
+                                                            ) : <span className="text-3xl">{userAvatar || "🧠"}</span>}
                                                         </div>
                                                         <div>
-                                                            <p className="font-game font-bold text-foreground">{userName}</p>
-                                                            <p className="text-[10px] text-brand-primary uppercase tracking-widest font-black">{level}</p>
+                                                            <p className="font-game font-bold text-foreground text-lg leading-tight">{userName}</p>
+                                                            <p className="text-[10px] text-brand-primary uppercase tracking-[0.2em] font-black mt-1">{level}</p>
                                                         </div>
                                                     </div>
 
-                                                    <h4 className="text-[9px] font-black text-text-secondary uppercase tracking-[0.2em] mb-3">Choose Avatar</h4>
-                                                    <div className="grid grid-cols-3 gap-2 mb-4">
+                                                    <h4 className="text-[10px] font-black text-brand-success uppercase tracking-[0.2em] mb-3">Choose Avatar</h4>
+                                                    <div className="grid grid-cols-3 gap-3 mb-6">
                                                         {suggestedAvatars?.map((url: string, i: number) => (
                                                             <motion.button
                                                                 key={i}
                                                                 whileHover={{ scale: 1.05 }}
                                                                 whileTap={{ scale: 0.95 }}
                                                                 onClick={() => { setAvatar(url); setIsProfileMenuOpen(false); }}
-                                                                className={`aspect-square rounded-2xl bg-brand-primary/5 hover:bg-brand-primary/15 border-2 transition-all flex items-center justify-center overflow-hidden cursor-pointer ${
-                                                                    userAvatar === url ? 'border-brand-primary shadow-lg shadow-brand-primary/20' : 'border-transparent hover:border-brand-primary/40'
+                                                                className={`aspect-square rounded-2xl transition-all flex items-center justify-center overflow-hidden cursor-pointer ${
+                                                                    userAvatar === url ? 'bg-brand-primary/10 border-2 border-brand-primary shadow-[0_0_15px_rgba(124,77,255,0.3)]' : 'bg-black/20 border-2 border-transparent hover:border-white/20'
                                                                 }`}
                                                             >
                                                                 <img
                                                                     src={url}
                                                                     alt={`Avatar ${i}`}
-                                                                    className="w-full h-full object-cover"
+                                                                    className="w-[85%] h-[85%] object-cover rounded-xl"
                                                                 />
                                                             </motion.button>
                                                         ))}
                                                     </div>
                                                     {(!suggestedAvatars || suggestedAvatars.length === 0) && (
-                                                        <p className="text-xs text-text-secondary text-center py-3">No avatars available.</p>
+                                                        <p className="text-xs text-text-secondary text-center py-4 bg-black/20 rounded-2xl mb-5">No avatars available.</p>
                                                     )}
 
-                                                    <div className="space-y-2 pt-3 border-t border-border">
-                                                        <Link href="/profile" onClick={() => setIsProfileMenuOpen(false)}>
-                                                            <button className="w-full py-2.5 bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary rounded-xl text-center font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
-                                                                <User className="w-3.5 h-3.5" /> Edit Profile
+                                                    <div className="flex flex-col gap-2.5 pt-4 border-t border-white/10">
+                                                        <Link href="/profile" onClick={() => setIsProfileMenuOpen(false)} className="block">
+                                                            <button className="w-full py-3 bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary rounded-[1.25rem] text-center font-bold text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer">
+                                                                <User className="w-4 h-4" /> Edit Profile
                                                             </button>
                                                         </Link>
-                                                        <Link href="/support" onClick={() => setIsProfileMenuOpen(false)}>
-                                                            <button className="w-full py-2.5 bg-brand-gold/10 hover:bg-brand-gold/20 text-brand-gold rounded-xl text-center font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
-                                                                <MessageSquare className="w-3.5 h-3.5" /> Support & FAQs
+                                                        <Link href="/support" onClick={() => setIsProfileMenuOpen(false)} className="block">
+                                                            <button className="w-full py-3 bg-brand-gold/10 hover:bg-brand-gold/20 text-brand-gold rounded-[1.25rem] text-center font-bold text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer">
+                                                                <MessageSquare className="w-4 h-4" /> Support & FAQs
                                                             </button>
                                                         </Link>
-                                                        <Link href="/leaderboard" onClick={() => setIsProfileMenuOpen(false)}>
-                                                            <button className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-foreground rounded-xl text-center font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
-                                                                <Trophy className="w-3.5 h-3.5" /> View Leaderboard
+                                                        <Link href="/leaderboard" onClick={() => setIsProfileMenuOpen(false)} className="block">
+                                                            <button className="w-full py-3 bg-white/5 hover:bg-white/10 text-foreground rounded-[1.25rem] text-center font-bold text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer">
+                                                                <Trophy className="w-4 h-4" /> View Leaderboard
                                                             </button>
                                                         </Link>
                                                         <button
                                                             onClick={() => { logout(); signOut({ callbackUrl: '/' }); }}
-                                                            className="w-full py-2.5 bg-brand-error/10 hover:bg-brand-error/20 text-brand-error rounded-xl text-center font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                                                            className="w-full py-3 bg-brand-error/10 hover:bg-brand-error/20 text-brand-error rounded-[1.25rem] text-center font-bold text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer"
                                                         >
-                                                            <LogOut className="w-3.5 h-3.5" /> Sign Out
+                                                            <LogOut className="w-4 h-4" /> Sign Out
                                                         </button>
                                                     </div>
                                                 </motion.div>
